@@ -11,7 +11,6 @@
 #include <pthread.h>
 #include <chrono>
 #include <thread>
-
 #endif
 
 #include <stdio.h>
@@ -23,45 +22,55 @@
 
 using namespace std;
 
-
 #ifdef WINDOWS_OS
-
+// Windows-specific functions and definitions
 void Cleanup();
-
 bool StartSocket();
 int SocketGetLastError();
-
 #else
+// UNIX/Linux-specific definitions
 #define SOCKET int
 
 void Cleanup();
 bool StartSocket();
 int SocketGetLastError();
 #define SOCKET_ERROR (-1)
-int CloseSocket( int s );
+int CloseSocket(int s);
 void Sleep(unsigned int microseconds);
-
 #endif
 
+// Class CClientSocket Definition
 class CClientSocket
 {
-    char  m_ServerName[255];
+private:
+    char m_ServerName[255];
     int m_PortNumber;
     struct sockaddr_in m_Server;
-    struct hostent     *m_HostPointer;
+    struct hostent *m_HostPointer;
     unsigned int m_addr;
     SOCKET m_ConnectSock;
+
 public:
-    CClientSocket(char *ServerName ,  int PortNumber);
+    // Constructor
+    CClientSocket(char *ServerName, int PortNumber);
+
+    // Get the socket handle
     SOCKET GetSocket();
+
+    // Resolve the host name or IP address
     bool Resolve();
+
+    // Connect to the server
     bool Connect();
-    bool Write( void *buffer , int len ) ;
-    bool Receive( void *buffer , int* len );
+
+    // Write data to the server
+    bool Write(void *buffer, int len);
+
+    // Receive data from the server
+    bool Receive(void *buffer, int *len);
+
+    // Close the socket
     int Close();
-
-
-
 };
 
 #endif

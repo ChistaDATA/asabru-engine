@@ -61,7 +61,7 @@ void ReleaseLock();
 #define SOCKET int
 typedef struct
 {
-    int Sh; // Socket Handle which represents a Client
+    int client_port; // Socket Handle which represents a Client
     int forward_port;
     char remote_addr[32];
     void *ptr_to_instance;

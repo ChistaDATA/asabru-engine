@@ -43,7 +43,7 @@ void Cleanup()
 {
     WSACleanup();
 }
-//------------ Initialize WinSock Library
+//------------ Initialize WinSock Library - Initialize WSA Variables
 bool StartSocket()
 {
     WORD Ver;
@@ -314,7 +314,7 @@ void *CServerSocket::ListenThreadProc(
         printf("\n....................Accepted a new Connection........\n");
         CLIENT_DATA ClientData;
         DWORD ThreadId;
-        ClientData.Sh = InComingSocket;
+        ClientData.client_port = InComingSocket;
         memcpy(ClientData.node_info, info.node_info, 255);
         cout << "Before callint Client Thread => "
              << "ClientData.node_info" << endl;
