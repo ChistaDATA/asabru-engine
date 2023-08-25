@@ -3,8 +3,16 @@
 // https://github.com/eminfedar/async-sockets-cpp
 //
 //
-
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <iostream>
+#include <functional>
+#include "ProtocolHelper.h"
 #include "ServerSocket.h"
+
+using namespace std;
 
 #ifdef WINDOWS_OS
 #include <windows.h>
@@ -19,15 +27,13 @@
 
 #endif
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <iostream>
-#include <functional>
-using namespace std;
+
 
 ////////////////////////////////
+#define INVALID_SOCKET (-1)
+#define SOCKET_BIND_ERROR (-1)
+#define SOCKET_LISTEN_ERROR (-1)
+#define MAX_CONNECTIONS 5
 
 #ifdef WINDOWS_OS
 
@@ -82,7 +88,8 @@ void ReleaseLock()
     LeaveCriticalSection(&m_CriticalSection);
 }
 
-#else // POSIX
+#else
+// POSIX
 #define SOCKET int
 
 // int InComingSocket;
@@ -124,7 +131,12 @@ void ReleaseLock()
 }
 
 #endif
-//--------------------- Initialize Local Socket
+
+/**
+ * Constructor - Initialize Local Socket
+ * @param p_port integer
+ * @param protocol Protocol
+ */
 CServerSocket::CServerSocket(int p_port, string protocol) : m_ProtocolPort(p_port)
 {
     m_LocalAddress.sin_family = AF_INET;
@@ -132,29 +144,51 @@ CServerSocket::CServerSocket(int p_port, string protocol) : m_ProtocolPort(p_por
     m_LocalAddress.sin_port = htons(m_ProtocolPort);
     strcpy(Protocol, protocol.c_str());
 }
-//---------------------------- Open Socket
+
+/**
+ * Open Socket
+ */
 bool CServerSocket::Open(string node_info, std::function<void *(void *)> pthread_routine)
 {
-    // Fetch Socket Descriptor, Bind , Listen and Start Listening Thread
-    if ((m_ListnerSocket = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
+    // Initialize the socket file descriptor
+    // int socket(int domain, int type, int protocol)
+    // AF_INET      --> ipv4
+    // SOCK_STREAM  --> TCP
+    // SOCK_DGRAM   --> UDP
+    // protocol = 0 --> default for TCP
+    m_ListnerSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+
+    if (m_ListnerSocket == INVALID_SOCKET)
     {
         cout << "Failed to create Socket Descriptor " << endl;
         return false;
     }
 
-    if (::bind(m_ListnerSocket, (struct sockaddr *)&m_LocalAddress, sizeof(m_LocalAddress)) == SOCKET_ERROR)
+    /**
+     * Bind the socket to server_address
+     */
+    if (::bind(m_ListnerSocket, (struct sockaddr *)&m_LocalAddress, sizeof(m_LocalAddress)) == SOCKET_BIND_ERROR)
     {
         cout << "Failed to Bind" << endl;
         return false;
     }
 
-    if (listen(m_ListnerSocket, 5) == SOCKET_ERROR)
+    /**
+     * Listen for connections
+     */
+    if (listen(m_ListnerSocket, MAX_CONNECTIONS) == SOCKET_LISTEN_ERROR)
     {
         cout << "Listening Socket Failed.. ...." << endl;
         return false;
     }
+    else
+    {
+        printf("Started listening on local port : %d\n", m_ProtocolPort);
+    };
+    // Starts the listening thread
     return StartListeningThread(node_info, pthread_routine);
 }
+
 //------------------- Start a Listening Thread
 bool CServerSocket::StartListeningThread(string node_info, std::function<void *(void *)> pthread_routine)
 {
@@ -269,7 +303,7 @@ bool ProtocolHelper::WriteSocketBuffer(SOCKET s, char *bfr, int size)
 }
 
 /**
- * Creates a thread that listens to incoming connections to the socket
+ * The thread that listens to incoming connections to the socket
  */
 #ifdef WINDOWS_OS
 DWORD WINAPI CServerSocket::ListenThreadProc(
@@ -281,6 +315,7 @@ void *CServerSocket::ListenThreadProc(
 {
 
     printf("Entered the Listener Thread :\n");
+
     NODE_INFO info;
     memcpy(&info, lpParameter, sizeof(NODE_INFO));
     CServerSocket *curr_instance = (CServerSocket *)(info.ptr_to_instance);
@@ -354,8 +389,8 @@ void *CServerSocket::ClientThreadProc(
 #endif
 {
 
-    CLIENT_DATA CData;
-    memcpy(&CData, lpParam, sizeof(CLIENT_DATA));
-    ((CServerSocket *)CData.ptr_to_instance)->thread_routine(lpParam);
+    CLIENT_DATA clientData;
+    memcpy(&clientData, lpParam, sizeof(CLIENT_DATA));
+    ((CServerSocket *)clientData.ptr_to_instance)->thread_routine(lpParam);
     return 0;
 }

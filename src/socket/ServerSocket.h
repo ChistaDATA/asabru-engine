@@ -82,14 +82,11 @@ void *ListenThreadProc(void *lpParameter);
 void *ClientThreadProc(void *lpParam);
 
 #define SOCKET_ERROR (-1)
-
 void InitializeLock();
 void AcquireLock();
-
 void ReleaseLock();
-
 #endif
-//----------------- This is a Structure which will be passed from Socket class to Listen Thread Routine
+
 typedef struct
 {
     char node_info[255];   // Encoded Current Node Information as String
@@ -122,30 +119,13 @@ public:
     static void *ListenThreadProc(void *lpParameter);
     static void *ClientThreadProc(void *lpParam);
 #endif
-
-    //--------------------- Initialize Local Socket
     CServerSocket(int p_port, string protocol = "DEFAULT");
-    //---------------------------- Open Socket
     bool Open(string node_info, std::function<void *(void *)> pthread_routine);
-    //------------------- Start a Listening Thread
     bool StartListeningThread(string node_info, std::function<void *(void *)> pthread_routine);
-    ///////////////////////////////////////
-    //  Close The Server Socket
-    //
     bool Close();
     bool Read(char *bfr, int size);
     bool Write(char *bfr, int size);
 };
 
-class ProtocolHelper
-{
-public:
-    static string GetIPAddressAsString(struct sockaddr_in *client_addr);
-    static string GetIPPortAsString(struct sockaddr_in *client_addr);
-    static bool SetReadTimeOut(SOCKET s, long second);
-    static bool ReadSocketBuffer(SOCKET s, char *bfr, int size, int *num_read);
-    static bool ReadSocketBuffer(SOCKET s, char *bfr, int size);
-    static bool WriteSocketBuffer(SOCKET s, char *bfr, int size);
-};
 
 #endif
