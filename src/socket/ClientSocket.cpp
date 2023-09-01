@@ -1,6 +1,7 @@
 #include "ServerSocket.h"
 #include "ClientSocket.h"
 #include "ProtocolHelper.h"
+#include "ThreadUtils.h"
 
 //////////////////////////////////////////
 // CClientSocket Implementation

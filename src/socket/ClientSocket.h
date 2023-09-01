@@ -21,23 +21,8 @@
 #include <ctype.h>
 
 using namespace std;
-
-#ifdef WINDOWS_OS
-// Windows-specific functions and definitions
-void Cleanup();
-bool StartSocket();
-int SocketGetLastError();
-#else
-// UNIX/Linux-specific definitions
 #define SOCKET int
-
-void Cleanup();
-bool StartSocket();
-int SocketGetLastError();
-#define SOCKET_ERROR (-1)
-int CloseSocket(int s);
 void Sleep(unsigned int microseconds);
-#endif
 
 // Class CClientSocket Definition
 class CClientSocket
