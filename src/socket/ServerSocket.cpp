@@ -11,6 +11,8 @@
 #include <functional>
 #include "ProtocolHelper.h"
 #include "ServerSocket.h"
+#include "Socket.h"
+#include <unistd.h>
 
 using namespace std;
 
@@ -27,289 +29,66 @@ using namespace std;
 
 #endif
 
-
-
-////////////////////////////////
-#define INVALID_SOCKET (-1)
-#define SOCKET_BIND_ERROR (-1)
-#define SOCKET_LISTEN_ERROR (-1)
-#define MAX_CONNECTIONS 5
-
-#ifdef WINDOWS_OS
-
-//---------------- Socket Descriptor for Windows
-//---------------- Listener Socket => Accepts Connection
-//---------------- Incoming Socket is Socket Per Client
-
-//----------------- Thread Entry Points for Listener and Thread Per Client
-DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
-DWORD WINAPI ClientThreadProc(LPVOID lpParam);
-//--------------- Call WSACleanUP for resource de-allocation
-void Cleanup()
-{
-    WSACleanup();
-}
-//------------ Initialize WinSock Library - Initialize WSA Variables
-bool StartSocket()
-{
-    WORD Ver;
-    WSADATA wsd;
-    Ver = MAKEWORD(2, 2);
-    if (WSAStartup(Ver, &wsd) == SOCKET_ERROR)
-    {
-        WSACleanup();
-        return false;
-    }
-    return true;
-}
-//-----------------Get Last Socket Error
-int SocketGetLastError() { return WSAGetLastError(); }
-//----------------- Close Socket
-int CloseSocket(SOCKET s)
-{
-    closesocket(s);
-    return 0;
-}
-
-/* This is the critical section object (statically allocated). */
-CRITICAL_SECTION m_CriticalSection;
-
-void InitializeLock()
-{
-    InitializeCriticalSection(&m_CriticalSection);
-}
-
-void AcquireLock()
-{
-    EnterCriticalSection(&m_CriticalSection);
-}
-void ReleaseLock()
-{
-    LeaveCriticalSection(&m_CriticalSection);
-}
-
-#else
-// POSIX
-#define SOCKET int
-
-// int InComingSocket;
-void Cleanup() {}
-bool StartSocket() { return true; }
-
-int SocketGetLastError() { return 0xFFFF; }
-int CloseSocket(int s)
-{
-    shutdown(s, 2);
-    return 0;
-}
-#define INVALID_SOCKET (-1)
-
-void *ListenThreadProc(void *lpParameter);
-void *ClientThreadProc(void *lpParam);
-
-#define SOCKET_ERROR (-1)
-
-#if defined(__APPLE__)
-/* This is the critical section object (statically allocated). */
-static pthread_mutex_t cs_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
-#else
-static pthread_mutex_t cs_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#endif
-
-void InitializeLock()
-{
-}
-void AcquireLock()
-{
-    /* Enter the critical section -- other threads are locked out */
-    pthread_mutex_lock(&cs_mutex);
-}
-void ReleaseLock()
-{
-    /*Leave the critical section -- other threads can now pthread_mutex_lock()  */
-    pthread_mutex_unlock(&cs_mutex);
-}
-
-#endif
+#include "ThreadUtils.h"
 
 /**
  * Constructor - Initialize Local Socket
- * @param p_port integer
+ * @param proxy_port integer
  * @param protocol Protocol
  */
-CServerSocket::CServerSocket(int p_port, string protocol) : m_ProtocolPort(p_port)
+CServerSocket::CServerSocket(int proxy_port, string protocol) : m_ProtocolPort(proxy_port)
 {
-    m_LocalAddress.sin_family = AF_INET;
-    m_LocalAddress.sin_addr.s_addr = INADDR_ANY;
-    m_LocalAddress.sin_port = htons(m_ProtocolPort);
     strcpy(Protocol, protocol.c_str());
 }
 
 /**
  * Open Socket
  */
-bool CServerSocket::Open(string node_info, std::function<void *(void *)> pthread_routine)
+bool CServerSocket::Open(string node_info, std::function<void *(void *)> pipeline_thread_routine)
 {
-    // Initialize the socket file descriptor
-    // int socket(int domain, int type, int protocol)
-    // AF_INET      --> ipv4
-    // SOCK_STREAM  --> TCP
-    // SOCK_DGRAM   --> UDP
-    // protocol = 0 --> default for TCP
-    m_ListnerSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-
-    if (m_ListnerSocket == INVALID_SOCKET)
-    {
-        cout << "Failed to create Socket Descriptor " << endl;
-        return false;
-    }
-
-    /**
-     * Bind the socket to server_address
-     */
-    if (::bind(m_ListnerSocket, (struct sockaddr *)&m_LocalAddress, sizeof(m_LocalAddress)) == SOCKET_BIND_ERROR)
-    {
-        cout << "Failed to Bind" << endl;
-        return false;
-    }
-
-    /**
-     * Listen for connections
-     */
-    if (listen(m_ListnerSocket, MAX_CONNECTIONS) == SOCKET_LISTEN_ERROR)
-    {
-        cout << "Listening Socket Failed.. ...." << endl;
-        return false;
-    }
-    else
-    {
-        printf("Started listening on local port : %d\n", m_ProtocolPort);
-    };
+    socket_server = new SocketServer(m_ProtocolPort, MAX_CONNECTIONS);
+    
     // Starts the listening thread
-    return StartListeningThread(node_info, pthread_routine);
+    return StartListeningThread(node_info, pipeline_thread_routine);
 }
 
-//------------------- Start a Listening Thread
-bool CServerSocket::StartListeningThread(string node_info, std::function<void *(void *)> pthread_routine)
+/**
+ *  Start a Listening Thread
+ */
+bool CServerSocket::StartListeningThread(string node_info, std::function<void *(void *)> pipeline_thread_routine)
 {
 
+    cout << "\nThread  => " << node_info << endl;
     strcpy(info.node_info, node_info.c_str());
-    cout << "\nThread  => " << info.node_info << endl;
     info.mode = 1;
-    this->thread_routine = pthread_routine;
-    info.ptr_to_instance = (void *)this;
+
+    this->thread_routine = pipeline_thread_routine;
+    info.ptr_to_instance = (void *) this;
 
     if (info.ptr_to_instance == 0)
-    {
         return false;
-    }
+
 #ifdef WINDOWS_OS
     DWORD Thid;
-
     CreateThread(NULL, 0, CServerSocket::ListenThreadProc, (void *)&info, 0, &Thid);
 #else
     pthread_t thread1;
-    int iret1;
-    //-----
-
-    iret1 = pthread_create(&thread1, NULL, CServerSocket::ListenThreadProc, (void *)&info);
-
+    int iret1 = pthread_create(&thread1, NULL, CServerSocket::ListenThreadProc, (void *)&info);
 #endif
+
     cout << "Started Listening Thread :" << endl;
-    return true;
-}
-///////////////////////////////////////
-//  Close The Server Socket
-//
-bool CServerSocket::Close()
-{
-    CloseSocket(m_ListnerSocket);
-    return false;
-}
-
-bool CServerSocket::Read(char *bfr, int size)
-{
-    int RetVal = recv(m_ListnerSocket, bfr, size, 0);
-    if (RetVal == 0 || RetVal == -1)
-    {
-        return false;
-    }
-    return true;
-}
-bool CServerSocket::Write(char *bfr, int size)
-{
-    int bytes_send = send(m_ListnerSocket, (char *)bfr, size, 0);
-    return bytes_send > 0;
-}
-string ProtocolHelper::GetIPAddressAsString(struct sockaddr_in *client_addr)
-{
-    struct sockaddr_in *pV4Addr = client_addr;
-    struct in_addr ipAddr = pV4Addr->sin_addr;
-    char str[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &ipAddr, str, INET_ADDRSTRLEN);
-    return string(str);
-}
-
-string ProtocolHelper::GetIPPortAsString(struct sockaddr_in *client_addr)
-{
-    struct sockaddr_in *pV4Addr = client_addr;
-    in_port_t ipPort = pV4Addr->sin_port;
-    return std::to_string(ipPort);
-}
-
-bool ProtocolHelper::SetReadTimeOut(SOCKET s, long second)
-{
-    struct timeval tv;
-    tv.tv_sec = second;
-    tv.tv_usec = 0;
-    int timeoutVal = 0;
-    int timeoutValSizeInInt = sizeof(int);
-    int timeoutValSizeInTimeVal = sizeof(timeval);
-    if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO,
-                   (const char *)&tv, timeoutValSizeInTimeVal) != SOCKET_ERROR)
-    {
-        return true;
-    }
-    return false;
-}
-
-bool ProtocolHelper::ReadSocketBuffer(SOCKET s, char *bfr, int size, int *num_read)
-{
-    int RetVal = recv(s, bfr, size, 0);
-    if (RetVal == 0 || RetVal == -1)
-    {
-        *num_read = RetVal;
-        return false;
-    }
-    *num_read = RetVal;
-    return true;
-}
-bool ProtocolHelper::ReadSocketBuffer(SOCKET s, char *bfr, int size)
-{
-    int RetVal = recv(s, bfr, size, 0);
-    if (RetVal == 0 || RetVal == -1)
-    {
-        return false;
-    }
-
-    return true;
-}
-bool ProtocolHelper::WriteSocketBuffer(SOCKET s, char *bfr, int size)
-{
-    int RetVal = send(s, bfr, size, 0);
-    if (RetVal == 0 || RetVal == -1)
-        return false;
     return true;
 }
 
 /**
- * The thread that listens to incoming connections to the socket
+ * The thread that listens to incoming connections to the socket.
+ * It accepts new connections and starts a new client thread.
  */
 #ifdef WINDOWS_OS
 DWORD WINAPI CServerSocket::ListenThreadProc(
     LPVOID lpParameter)
 #else
-void *CServerSocket::ListenThreadProc(
+void * CServerSocket::ListenThreadProc(
     void *lpParameter)
 #endif
 {
@@ -318,59 +97,47 @@ void *CServerSocket::ListenThreadProc(
 
     NODE_INFO info;
     memcpy(&info, lpParameter, sizeof(NODE_INFO));
-    CServerSocket *curr_instance = (CServerSocket *)(info.ptr_to_instance);
+
     cout << "node info => " << string(info.node_info) << endl;
-    if (curr_instance == 0)
-    {
-        cout << "Failed to Retrieve Pointers" << endl;
+
+    CServerSocket *curr_instance = (CServerSocket *)(info.ptr_to_instance);
+    if (curr_instance == 0) {
+        cout << "Failed to retrieve current instance pointer" << endl;
         return 0;
     }
+
+    SocketServer * socket_server = curr_instance->socket_server;
+    
+    cout << "Started listening thread loop :\n" << endl;
+
     while (1)
-    {
-        cout << "started client thread loop :\n"
-             << endl;
-        unsigned int Len = sizeof(curr_instance->m_RemoteAddress);
+    {    
 
-#ifdef WINDOWS_OS
-        SOCKET InComingSocket = accept(curr_instance->m_ListnerSocket,
-                                       (struct sockaddr *)&(curr_instance->m_RemoteAddress), (int *)&Len);
-#else
-        SOCKET InComingSocket = accept(curr_instance->m_ListnerSocket,
-                                       (struct sockaddr *)&(curr_instance->m_RemoteAddress), (socklen_t *)&Len);
+        Socket * new_sock = socket_server->Accept();
+        cout << "Accepted connection :" << endl;
 
-#endif
-        printf("\n....................After the Accept........\n");
-        if (InComingSocket == INVALID_SOCKET)
-        {
-            fprintf(stderr, "accept error %d\n", SocketGetLastError());
-            Cleanup();
-            return 0;
-        }
-        printf("\n....................Accepted a new Connection........\n");
-        CLIENT_DATA ClientData;
-        DWORD ThreadId;
-        ClientData.client_port = InComingSocket;
-        memcpy(ClientData.node_info, info.node_info, 255);
-        cout << "Before callint Client Thread => "
-             << "ClientData.node_info" << endl;
-        ClientData.mode = info.mode;
-        string remote_ip = ProtocolHelper::GetIPAddressAsString(&(curr_instance->m_RemoteAddress));
-        strcpy(ClientData.remote_addr, remote_ip.c_str());
+        CLIENT_DATA clientData;
+        
+        clientData.client_port = new_sock->GetSocket();
+        memcpy(clientData.node_info, info.node_info, 255);
+
+        clientData.mode = info.mode;
+        string remote_ip = ProtocolHelper::GetIPAddressAsString(&(socket_server->socket_address));
+        strcpy(clientData.remote_addr, remote_ip.c_str());
         cout << "Remote IP address : " << remote_ip << endl;
-        string remote_port = ProtocolHelper::GetIPPortAsString(&(curr_instance->m_RemoteAddress));
+        string remote_port = ProtocolHelper::GetIPPortAsString(&(socket_server->socket_address));
         cout << "Remote port : " << remote_port << endl;
-        ClientData.ptr_to_instance = curr_instance;
+        clientData.ptr_to_instance = curr_instance;
+        clientData.client_socket = new_sock;
 
 #ifdef WINDOWS_OS
-
-        // ClientData.Sh = InComingSocket;
-        ::CreateThread(NULL, 0, CServerSocket::ClientThreadProc, (LPVOID)&ClientData,
-                       0, &ThreadId);
+        DWORD ThreadId;
+        ::CreateThread(NULL, 0, CServerSocket::ClientThreadProc, (LPVOID)&ClientData, 0, &ThreadId);
 #else
         pthread_t thread2;
-        // ClientData.Sh = InComingSocket;
-        pthread_create(&thread2, NULL, CServerSocket::ClientThreadProc, (void *)&ClientData);
+        pthread_create(&thread2, NULL, CServerSocket::ClientThreadProc, (void *)&clientData);
 #endif
+        usleep(3000);
     }
 
     return 0;

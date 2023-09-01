@@ -14,102 +14,62 @@
 
 #endif
 
+#include "Socket.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <iostream>
 #include <functional>
+#include "ThreadUtils.h"
+
 using namespace std;
 
-////////////////////////////////
-
-#ifdef WINDOWS_OS
-typedef struct
-{
-       SOCKET Sh;             // Socket Handle which represents a Client
-       SOCKET forward_port;   // In a non proxying mode, it will be -1
-       char remote_addr[32];  //  Address of incoming endpoint
-       void *ptr_to_instance; //  Pointer to the instance to which this ClientDATA belongs
-       char node_info[255];   //   Node Information
-       int mode;              //   R/W mode - Read Or Write
-       char ProtocolName[255];
-} CLIENT_DATA;
-
-//---------------- Socket Descriptor for Windows
-//---------------- Listener Socket => Accepts Connection
-//---------------- Incoming Socket is Socket Per Client
-
-//----------------- Thread Entry Points for Listener and Thread Per Client
-DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
-DWORD WINAPI ClientThreadProc(LPVOID lpParam);
-//--------------- Call WSACleanUP for resource de-allocation
-void Cleanup();
-//------------ Initialize WinSock Library
-bool StartSocket();
-//-----------------Get Last Socket Error
-int SocketGetLastError();
-//----------------- Close Socket
-int CloseSocket(SOCKET s);
-
-void InitializeLock();
-
-void AcquireLock();
-void ReleaseLock();
-
-#else // POSIX
-#define SOCKET int
 typedef struct
 {
     int client_port; // Socket Handle which represents a Client
-    int forward_port;
-    char remote_addr[32];
-    void *ptr_to_instance;
-    char node_info[255];
-    int mode;
+    SOCKET forward_port;   // In a non proxying mode, it will be -1
+    char remote_addr[32];  //  Address of incoming endpoint
+    void *ptr_to_instance; //  Pointer to the instance to which this ClientDATA belongs
+    char node_info[255];   //   Node Information
+    int mode;              //   R/W mode - Read Or Write
     char ProtocolName[255];
+    Socket * client_socket;
 } CLIENT_DATA;
 
-// int InComingSocket;
-void Cleanup();
-bool StartSocket();
-
-int SocketGetLastError();
-int CloseSocket(int s);
-#define INVALID_SOCKET (-1)
-
+#ifdef WINDOWS_OS
+DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
+DWORD WINAPI ClientThreadProc(LPVOID lpParam);
+#else 
+// POSIX
 void *ListenThreadProc(void *lpParameter);
 void *ClientThreadProc(void *lpParam);
-
-#define SOCKET_ERROR (-1)
-void InitializeLock();
-void AcquireLock();
-void ReleaseLock();
 #endif
 
 typedef struct
 {
     char node_info[255];   // Encoded Current Node Information as String
     int mode;              // R/W
-    void *ptr_to_instance; // Pointer to CServerSocket class
+    void * ptr_to_instance; // Pointer to CServerSocket class
 } NODE_INFO;
 
-////////////////////////////////////////////////////
-// CServerSocket class
-//
+/**
+ * CServerSocket
+ * - This class holds the responsiblity for maintaining the 
+ *   proxy server socket. 
+*/
 class CServerSocket
 {
+    SocketServer * socket_server;
     int m_ProtocolPort = 3500;
-    struct sockaddr_in m_LocalAddress;
     char Protocol[255];
 
 public:
-    struct sockaddr_in m_RemoteAddress
-    {
-    };
     SOCKET m_ListnerSocket = -1;
+
     NODE_INFO info;
-    //-------------------------------- Parametrize Thread Routine
+
+    /** Parametrized Thread Routine */ 
     std::function<void *(void *)> thread_routine;
 
 #ifdef WINDOWS_OS
@@ -119,6 +79,7 @@ public:
     static void *ListenThreadProc(void *lpParameter);
     static void *ClientThreadProc(void *lpParam);
 #endif
+
     CServerSocket(int p_port, string protocol = "DEFAULT");
     bool Open(string node_info, std::function<void *(void *)> pthread_routine);
     bool StartListeningThread(string node_info, std::function<void *(void *)> pthread_routine);
@@ -126,6 +87,5 @@ public:
     bool Read(char *bfr, int size);
     bool Write(char *bfr, int size);
 };
-
 
 #endif
