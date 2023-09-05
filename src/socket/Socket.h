@@ -60,7 +60,7 @@ public:
   // The parameter of SendBytes is a const reference
   // because SendBytes does not modify the std::string passed 
   // (in contrast to SendLine).
-  void SendBytes(const std::string&);
+  void SendBytes(char * s, int length);
 
   int GetSocket();
 

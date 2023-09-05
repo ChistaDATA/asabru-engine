@@ -387,9 +387,9 @@ void Socket::SendLine(std::string s)
 /**
  * Sends string bytes to the socket file descriptor
  */
-void Socket::SendBytes(const std::string &s)
+void Socket::SendBytes(char *s, int length)
 {
-    send(s_, s.c_str(), s.length(), 0);
+    send(s_, s, length, 0);
 }
 
 /**
