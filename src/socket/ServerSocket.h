@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <pthread.h>
+#include "uv.h"
 
 #define DWORD unsigned long
 
@@ -25,6 +26,13 @@
 
 using namespace std;
 
+// Structure to represent client and target connections
+typedef struct
+{
+    uv_tcp_t client;
+    uv_tcp_t target;
+} ClientTargetPair;
+
 typedef struct
 {
     int client_port; // Socket Handle which represents a Client
@@ -35,6 +43,7 @@ typedef struct
     int mode;              //   R/W mode - Read Or Write
     char ProtocolName[255];
     Socket * client_socket;
+    ClientTargetPair* client_target_pair;
 } CLIENT_DATA;
 
 #ifdef WINDOWS_OS
@@ -43,7 +52,7 @@ DWORD WINAPI ClientThreadProc(LPVOID lpParam);
 #else 
 // POSIX
 void *ListenThreadProc(void *lpParameter);
-void *ClientThreadProc(void *lpParam);
+void *ClientThreadProc(void *lpParam, ClientTargetPair * pair);
 #endif
 
 typedef struct
@@ -65,6 +74,8 @@ class CServerSocket
     char Protocol[255];
 
 public:
+    // Initialize libuv loop
+    uv_loop_t *loop;
     SOCKET m_ListnerSocket = -1;
 
     NODE_INFO info;
@@ -74,12 +85,11 @@ public:
 
 #ifdef WINDOWS_OS
     static DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
-    static DWORD WINAPI ClientThreadProc(LPVOID lpParam);
+    static DWORD WINAPI ClientThreadProc(LPVOID lpParam, ClientTargetPair* pair);
 #else
     static void *ListenThreadProc(void *lpParameter);
     static void *ClientThreadProc(void *lpParam);
 #endif
-
     CServerSocket(int p_port, string protocol = "DEFAULT");
     bool Open(string node_info, std::function<void *(void *)> pthread_routine);
     bool StartListeningThread(string node_info, std::function<void *(void *)> pthread_routine);

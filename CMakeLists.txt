@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 project(asabru_engine)
 
 include_directories(../asabru-commons/src)
+include_directories(../libuv/include)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 11)
@@ -36,6 +37,7 @@ set_target_properties(${PROJECT_NAME}
 
 target_link_libraries(
     ${PROJECT_NAME} 
+        ${CMAKE_SOURCE_DIR}/lib/libuv/build/libuv.a
         ${CMAKE_SOURCE_DIR}/lib/asabru-commons/build/lib/libasabru_commons.a
 )
 
