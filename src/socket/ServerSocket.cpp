@@ -12,6 +12,7 @@
 #include "ProtocolHelper.h"
 #include "ServerSocket.h"
 #include "Socket.h"
+#include "uv.h"
 #include <unistd.h>
 
 using namespace std;
@@ -31,6 +32,64 @@ using namespace std;
 
 #include "ThreadUtils.h"
 
+// Callback function for when a new client connection is accepted
+void on_new_connection(uv_stream_t *server, int status)
+{
+    CServerSocket *curr_instance = (CServerSocket *)server->data;
+    if (status < 0)
+    {
+        fprintf(stderr, "New connection error: %s\n", uv_strerror(status));
+        return;
+    }
+    ClientTargetPair *pair;
+    try
+    {
+        // Create a client-target pair
+        pair = (ClientTargetPair *)malloc(sizeof(ClientTargetPair));
+    }
+    catch (std::exception &e)
+    {
+        cout << e.what() << endl;
+        cout << "Error when allocating memory" << endl;
+    }
+
+    try
+    {
+        // Initialize client and target sockets
+        uv_tcp_init(curr_instance->loop, &pair->client);
+        uv_tcp_init(curr_instance->loop, &pair->target);
+    }
+    catch (std::exception &e)
+    {
+        cout << e.what() << endl;
+        cout << "Error when Initializing client and target sockets" << endl;
+    }
+
+    try
+    {
+        // Accept the incoming client connection
+        if (uv_accept(server, (uv_stream_t *)&pair->client) == 0)
+        {
+            CLIENT_DATA clientData;
+            memcpy(clientData.node_info, (char *)curr_instance->info.node_info, 255);
+            clientData.mode = curr_instance->info.mode;
+            clientData.ptr_to_instance = curr_instance;
+            clientData.client_target_pair = pair;
+            curr_instance->ClientThreadProc(&clientData);
+        }
+        else
+        {
+            cout << "accept error" << endl;
+            uv_close((uv_handle_t *)&pair->client, NULL);
+            uv_close((uv_handle_t *)&pair->target, NULL);
+        }
+    }
+    catch (std::exception &e)
+    {
+        cout << e.what() << endl;
+    }
+}
+
 /**
  * Constructor - Initialize Local Socket
  * @param proxy_port integer
@@ -47,7 +106,6 @@ CServerSocket::CServerSocket(int proxy_port, string protocol) : m_ProtocolPort(p
 bool CServerSocket::Open(string node_info, std::function<void *(void *)> pipeline_thread_routine)
 {
     socket_server = new SocketServer(m_ProtocolPort, MAX_CONNECTIONS);
-    
     // Starts the listening thread
     return StartListeningThread(node_info, pipeline_thread_routine);
 }
@@ -63,7 +121,7 @@ bool CServerSocket::StartListeningThread(string node_info, std::function<void *(
     info.mode = 1;
 
     this->thread_routine = pipeline_thread_routine;
-    info.ptr_to_instance = (void *) this;
+    info.ptr_to_instance = (void *)this;
 
     if (info.ptr_to_instance == 0)
         return false;
@@ -85,60 +143,42 @@ bool CServerSocket::StartListeningThread(string node_info, std::function<void *(
  * It accepts new connections and starts a new client thread.
  */
 #ifdef WINDOWS_OS
-DWORD WINAPI CServerSocket::ListenThreadProc(
-    LPVOID lpParameter)
+DWORD WINAPI CServerSocket::ListenThreadProc(LPVOID lpParameter)
 #else
-void * CServerSocket::ListenThreadProc(
-    void *lpParameter)
+void *CServerSocket::ListenThreadProc(void *lpParameter)
 #endif
 {
-
-    printf("Entered the Listener Thread :\n");
-
     NODE_INFO info;
     memcpy(&info, lpParameter, sizeof(NODE_INFO));
 
     cout << "node info => " << string(info.node_info) << endl;
-
     CServerSocket *curr_instance = (CServerSocket *)(info.ptr_to_instance);
-    if (curr_instance == 0) {
-        cout << "Failed to retrieve current instance pointer" << endl;
+
+    // Initialize libuv loop
+    // curr_instance->loop = uv_default_loop();
+    curr_instance->loop = (uv_loop_t *)malloc(sizeof(uv_loop_t));
+    curr_instance->info = info;
+    uv_loop_init(curr_instance->loop);
+
+    // Create a TCP server for the proxy
+    uv_tcp_t server;
+    uv_tcp_init(curr_instance->loop, &server);
+    server.data = curr_instance;
+
+    // Bind and listen on a port
+    uv_tcp_bind(&server, (const struct sockaddr *)&(curr_instance->socket_server->socket_address), 0);
+    int listen_result = uv_listen((uv_stream_t *)&server, 128, on_new_connection);
+
+    if (listen_result)
+    {
+        fprintf(stderr, "Listen error: %s\n", uv_strerror(listen_result));
         return 0;
     }
 
-    SocketServer * socket_server = curr_instance->socket_server;
-    
-    cout << "Started listening thread loop :\n" << endl;
+    printf("Proxy server listening on port %d\n", (int)curr_instance->m_ProtocolPort);
 
-    while (1)
-    {    
-
-        Socket * new_sock = socket_server->Accept();
-        cout << "Accepted connection :" << endl;
-
-        CLIENT_DATA clientData;
-        
-        clientData.client_port = new_sock->GetSocket();
-        memcpy(clientData.node_info, info.node_info, 255);
-
-        clientData.mode = info.mode;
-        string remote_ip = ProtocolHelper::GetIPAddressAsString(&(socket_server->socket_address));
-        strcpy(clientData.remote_addr, remote_ip.c_str());
-        cout << "Remote IP address : " << remote_ip << endl;
-        string remote_port = ProtocolHelper::GetIPPortAsString(&(socket_server->socket_address));
-        cout << "Remote port : " << remote_port << endl;
-        clientData.ptr_to_instance = curr_instance;
-        clientData.client_socket = new_sock;
-
-#ifdef WINDOWS_OS
-        DWORD ThreadId;
-        ::CreateThread(NULL, 0, CServerSocket::ClientThreadProc, (LPVOID)&ClientData, 0, &ThreadId);
-#else
-        pthread_t thread2;
-        pthread_create(&thread2, NULL, CServerSocket::ClientThreadProc, (void *)&clientData);
-#endif
-        usleep(3000);
-    }
+    // Run the libuv event loop
+    uv_run(curr_instance->loop, UV_RUN_DEFAULT);
 
     return 0;
 }
