@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 project(asabru_engine)
 
 include_directories(../asabru-commons/src)
+include_directories(../asabru-commons/src/config)
 include_directories(../libuv/include)
 
 # Set C++ standard
