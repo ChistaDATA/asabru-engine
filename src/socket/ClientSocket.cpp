@@ -61,7 +61,7 @@ bool CClientSocket::Connect()
         cout << "Failed To Create Socket Client " << endl;
         return false;
     }
-    ProtocolHelper::SetReadTimeOut(m_ConnectSock, 1);
+    // ProtocolHelper::SetReadTimeOut(m_ConnectSock, 1);
     return true;
 }
 
