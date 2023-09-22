@@ -10,6 +10,7 @@
 #include "../socket/ServerSocket.h"           // Include the base class header
 #include "CProxyHandler.h"       // Include the proxy handler header
 #include "config_types.h"           // Include the configuration types header
+#include "ProtocolHelper.h"
 
 // Class definition for CProxySocket
 class CProxySocket : public CServerSocket

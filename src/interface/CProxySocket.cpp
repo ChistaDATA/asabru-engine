@@ -50,8 +50,8 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
     uv_stream_t *client;
     uv_stream_t *target;
     clientData.forward_port = s;
-    ProtocolHelper::SetReadTimeOut(s, 1);
-    ProtocolHelper::SetReadTimeOut(clientData.client_port, 1);
+    // ProtocolHelper::SetReadTimeOut(s, 1);
+    // ProtocolHelper::SetReadTimeOut(clientData.client_port, 1);
     int num_cycles = 0;
     cout << "Entered Nested Loop " << endl;
     while (1)
