@@ -37,14 +37,14 @@ void InitializeLock()
     InitializeCriticalSection(&m_CriticalSection);
 }
 
-void AcquireLock()
-{
-    EnterCriticalSection(&m_CriticalSection);
-}
-void ReleaseLock()
-{
-    LeaveCriticalSection(&m_CriticalSection);
-}
+// void AcquireLock()
+// {
+//     EnterCriticalSection(&m_CriticalSection);
+// }
+// void ReleaseLock()
+// {
+//     LeaveCriticalSection(&m_CriticalSection);
+// }
 
 #else
 // POSIX
@@ -63,25 +63,28 @@ int CloseSocket(int s)
 #define INVALID_SOCKET (-1)
 #define SOCKET_ERROR (-1)
 
-#if defined(__APPLE__)
-/* This is the critical section object (statically allocated). */
-static pthread_mutex_t cs_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
-#else
-static pthread_mutex_t cs_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#endif
+// static pthread_mutex_t cs_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
+
+// #if defined(__APPLE__)
+// /* This is the critical section object (statically allocated). */
+// static pthread_mutex_t cs_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
+// #else
+// #define PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP { PTHREAD_MUTEX_RECURSIVE, 0, 0, 0, 0 }
+// static pthread_mutex_t cs_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+// #endif
 
 void InitializeLock()
 {
 }
-void AcquireLock()
-{
-    /* Enter the critical section -- other threads are locked out */
-    pthread_mutex_lock(&cs_mutex);
-}
-void ReleaseLock()
-{
-    /*Leave the critical section -- other threads can now pthread_mutex_lock()  */
-    pthread_mutex_unlock(&cs_mutex);
-}
+// void AcquireLock()
+// {
+//     /* Enter the critical section -- other threads are locked out */
+//     pthread_mutex_lock(&cs_mutex);
+// }
+// void ReleaseLock()
+// {
+//     /*Leave the critical section -- other threads can now pthread_mutex_lock()  */
+//     pthread_mutex_unlock(&cs_mutex);
+// }
 
 #endif

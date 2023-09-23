@@ -22,7 +22,7 @@ bool StartSocket();
 int SocketGetLastError();
 int CloseSocket(SOCKET s);
 void InitializeLock();
-void AcquireLock();
-void ReleaseLock();
+// void AcquireLock();
+// void ReleaseLock();
 
 #endif
