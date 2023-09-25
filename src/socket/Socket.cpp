@@ -35,6 +35,7 @@
 #include <windows.h>
 #else
 #define DWORD unsigned long
+#define u_long unsigned long
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -47,7 +48,6 @@
 #include <sys/ioctl.h>
 #endif
 #include "ThreadUtils.h"
-#include "uv.h"
 
 int Socket::nofSockets_ = 0;
 
@@ -398,8 +398,53 @@ void Socket::SendBytes(char *s, int length)
  */
 SocketServer::SocketServer(int port, int num_of_connections, TypeSocket type)
 {
-    // memset(&socket_address, 0, sizeof(socket_address));
-    uv_ip4_addr("0.0.0.0", port, &socket_address);
+
+    memset(&socket_address, 0, sizeof(socket_address));
+
+    socket_address.sin_family = PF_INET;
+    socket_address.sin_port = htons(port);
+
+    // Initialize the socket file descriptor
+    // int socket(int domain, int type, int protocol)
+    // AF_INET      --> ipv4
+    // SOCK_STREAM  --> TCP
+    // SOCK_DGRAM   --> UDP
+    // protocol = 0 --> default for TCP
+    s_ = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+
+    if (s_ == INVALID_SOCKET)
+    {
+        std::cout << "Failed to create Socket Descriptor " << std::endl;
+        throw "INVALID_SOCKET";
+    }
+
+    if (type == NonBlockingSocket)
+    {
+        make_nonblocking(s_);
+    }
+
+    /* bind the socket to the internet address */
+    if (bind(s_, (sockaddr *)&socket_address, sizeof(sockaddr_in)) == SOCKET_BIND_ERROR)
+    {
+        std::cout << "Failed to Bind" << std::endl;
+        Close();
+        throw "INVALID_SOCKET";
+    }
+
+    ;
+
+    /**
+     * Listen for connections
+     */
+    if (listen(s_, num_of_connections) == SOCKET_LISTEN_ERROR)
+    {
+        std::cout << "Listening Socket Failed.. ...." << std::endl;
+        throw "LISTEN_ERROR";
+    }
+    else
+    {
+        printf("Started listening on local port : %d\n", port);
+    };
 }
 
 /**
