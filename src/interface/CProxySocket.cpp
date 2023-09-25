@@ -47,8 +47,8 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
         return 0;
     }
 
-    uv_stream_t *client;
-    uv_stream_t *target;
+    Socket *client;
+    SocketClient *target;
     clientData.forward_port = s;
     // ProtocolHelper::SetReadTimeOut(s, 1);
     // ProtocolHelper::SetReadTimeOut(clientData.client_port, 1);
