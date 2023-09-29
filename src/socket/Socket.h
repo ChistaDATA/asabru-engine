@@ -83,10 +83,7 @@ private:
   static int  nofSockets_;
 };
 
-class SocketClient : public Socket {
-public:
-  SocketClient(const std::string& host, int port);
-};
+
 
 class SocketServer : public Socket {
 public:

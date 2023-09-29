@@ -2,6 +2,7 @@
 #define PROXY_HANDLER_H
 
 #include "../socket/ServerSocket.h"
+#include "../socket/SocketClient.h"
 
 class CProxyHandler
 {
