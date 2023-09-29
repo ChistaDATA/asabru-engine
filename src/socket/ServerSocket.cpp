@@ -12,7 +12,7 @@
 #include "ProtocolHelper.h"
 #include "ServerSocket.h"
 #include "Socket.h"
-#include "uv.h"
+// #include "uv.h"
 #include <unistd.h>
 
 using namespace std;
@@ -46,7 +46,10 @@ CServerSocket::CServerSocket(int proxy_port, string protocol) : m_ProtocolPort(p
 /**
  * Open Socket
  */
-bool CServerSocket::Open(string node_info, std::function<void *(void *)> pipeline_thread_routine)
+bool CServerSocket::Open(
+    string node_info, 
+    std::function<void *(void *)> pipeline_thread_routine
+)
 {
     socket_server = new SocketServer(m_ProtocolPort, MAX_CONNECTIONS);
     
@@ -94,7 +97,6 @@ void * CServerSocket::ListenThreadProc(
     void *lpParameter)
 #endif
 {
-
     printf("Entered the Listener Thread :\n");
 
     NODE_INFO info;

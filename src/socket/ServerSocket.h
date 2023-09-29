@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <pthread.h>
-#include "uv.h"
+// #include "uv.h"
 
 #define DWORD unsigned long
 
@@ -23,15 +23,17 @@
 #include <iostream>
 #include <functional>
 #include "ThreadUtils.h"
+// #include <chrono>
+// #include <thread>
 
 using namespace std;
 
 // Structure to represent client and target connections
-typedef struct
-{
-    uv_tcp_t client;
-    uv_tcp_t target;
-} ClientTargetPair;
+// typedef struct
+// {
+//     uv_tcp_t client;
+//     uv_tcp_t target;
+// } ClientTargetPair;
 
 typedef struct
 {
@@ -43,7 +45,7 @@ typedef struct
     int mode;              //   R/W mode - Read Or Write
     char ProtocolName[255];
     Socket * client_socket;
-    ClientTargetPair* client_target_pair;
+    // ClientTargetPair* client_target_pair;
 } CLIENT_DATA;
 
 #ifdef WINDOWS_OS
@@ -52,7 +54,7 @@ DWORD WINAPI ClientThreadProc(LPVOID lpParam);
 #else 
 // POSIX
 void *ListenThreadProc(void *lpParameter);
-void *ClientThreadProc(void *lpParam, ClientTargetPair * pair);
+void *ClientThreadProc(void *lpParam);
 #endif
 
 typedef struct
@@ -75,7 +77,7 @@ class CServerSocket
 
 public:
     // Initialize libuv loop
-    uv_loop_t *loop;
+    // uv_loop_t *loop;
     SOCKET m_ListnerSocket = -1;
 
     NODE_INFO info;

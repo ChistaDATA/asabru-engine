@@ -168,30 +168,40 @@ int Socket::make_nonblocking(int file_descriptor)
 
 SocketSelect::SocketSelect(Socket const *const s1, Socket const *const s2, TypeSocket type)
 {
-    FD_ZERO(&fds_);
-    FD_SET(s1->s_, &fds_);
-    if (s2)
+    try
     {
-        FD_SET(s2->s_, &fds_);
-    }
+        FD_ZERO(&fds_);
+        FD_SET(s1->s_, &fds_);
+        int max_fd;
+        if (s2)
+        {
+            FD_SET(s2->s_, &fds_);
+            max_fd = std::max(s1->s_, s2->s_);
+        } else {
+            max_fd = s1->s_;
+        }
 
-    timeval tval;
-    tval.tv_sec = 0;
-    tval.tv_usec = 1;
+        timeval tval;
+        tval.tv_sec = 0;
+        tval.tv_usec = 1;
 
-    timeval *ptval;
-    if (type == NonBlockingSocket)
-    {
-        ptval = &tval;
-    }
-    else
-    {
-        ptval = nullptr;
-    }
+        timeval *ptval;
+        if (type == NonBlockingSocket)
+        {
+            ptval = &tval;
+        }
+        else
+        {
+            ptval = nullptr;
+        }
 
-    if (select(std::max(s1->s_, s2->s_) + 1, &fds_, nullptr, nullptr, ptval) == -1)
-    {
-        throw std::runtime_error("Error in select");
+        if (select(max_fd + 1, &fds_, nullptr, nullptr, ptval) == -1)
+        {
+            std::cout << "Error during select" << std::endl;
+            throw std::runtime_error("Error in select");
+        }
+    } catch(std::exception &e) {
+        std::cout << e.what() << std::endl;
     }
 }
 
@@ -226,7 +236,7 @@ Socket *SocketServer::Accept()
         }
     }
 
-    make_nonblocking(new_sock);
+    // make_nonblocking(new_sock);
     Socket *r = new Socket(new_sock);
     return r;
 }
@@ -447,36 +457,7 @@ SocketServer::SocketServer(int port, int num_of_connections, TypeSocket type)
     };
 }
 
-/**
- * SocketClient - Constructor
- */
-SocketClient::SocketClient(const std::string &host, int port) : Socket()
-{
-    std::string error;
 
-    hostent *he;
-    if ((he = gethostbyname(host.c_str())) == 0)
-    {
-        error = strerror(errno);
-        throw error;
-    }
-
-    sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr = *((in_addr *)he->h_addr);
-    memset(&(addr.sin_zero), 0, 8);
-
-    if (::connect(s_, (sockaddr *)&addr, sizeof(sockaddr)))
-    {
-#if WINDOWS_OS
-        error = strerror(WSAGetLastError());
-#else
-        error = strerror(errno);
-#endif
-        throw error;
-    }
-}
 
 bool SocketSelect::Readable(Socket const *const s)
 {
