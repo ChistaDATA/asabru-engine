@@ -29,8 +29,6 @@
 #include <unistd.h>
 #include <cstring>
 
-#define SOCKET_BIND_ERROR (-1)
-
 #ifdef WINDOWS_OS
 #include <windows.h>
 #else
@@ -50,9 +48,6 @@
 #include "ThreadUtils.h"
 
 int Socket::nofSockets_ = 0;
-
-#define INVALID_SOCKET (-1)
-#define SOCKET_ERROR (-1)
 
 #if WINDOWS_OS
 void Socket::Start()
@@ -90,33 +85,6 @@ int Socket::make_nonblocking(int file_descriptor)
         return -1;
     }
     return 0;
-}
-
-SocketSelect::SocketSelect(Socket const *const s1, Socket const *const s2, TypeSocket type)
-{
-    FD_ZERO(&fds_);
-    FD_SET(const_cast<Socket *>(s1)->s_, &fds_);
-    if (s2)
-    {
-        FD_SET(const_cast<Socket *>(s2)->s_, &fds_);
-    }
-
-    TIMEVAL tval;
-    tval.tv_sec = 0;
-    tval.tv_usec = 1;
-
-    TIMEVAL *ptval;
-    if (type == NonBlockingSocket)
-    {
-        ptval = &tval;
-    }
-    else
-    {
-        ptval = 0;
-    }
-
-    if (select(0, &fds_, (fd_set *)0, (fd_set *)0, ptval) == SOCKET_ERROR)
-        throw "Error in select";
 }
 
 #else
@@ -166,80 +134,7 @@ int Socket::make_nonblocking(int file_descriptor)
     return 0;
 }
 
-SocketSelect::SocketSelect(Socket const *const s1, Socket const *const s2, TypeSocket type)
-{
-    try
-    {
-        FD_ZERO(&fds_);
-        FD_SET(s1->s_, &fds_);
-        int max_fd;
-        if (s2)
-        {
-            FD_SET(s2->s_, &fds_);
-            max_fd = std::max(s1->s_, s2->s_);
-        } else {
-            max_fd = s1->s_;
-        }
-
-        timeval tval;
-        tval.tv_sec = 0;
-        tval.tv_usec = 1;
-
-        timeval *ptval;
-        if (type == NonBlockingSocket)
-        {
-            ptval = &tval;
-        }
-        else
-        {
-            ptval = nullptr;
-        }
-
-        if (select(max_fd + 1, &fds_, nullptr, nullptr, ptval) == -1)
-        {
-            std::cout << "Error during select" << std::endl;
-            throw std::runtime_error("Error in select");
-        }
-    } catch(std::exception &e) {
-        std::cout << e.what() << std::endl;
-    }
-}
-
 #endif
-
-/**
- * Method that accepts a new connection to the listening socket,
- * makes the new socket connection non blocking and returns
- * reference to the Socket object.
- */
-Socket *SocketServer::Accept()
-{
-    SOCKET new_sock = accept(s_, 0, 0);
-    if (new_sock == INVALID_SOCKET)
-    {
-#ifdef WINDOWS_OS
-        int rc = WSAGetLastError();
-        if (rc == WSAEWOULDBLOCK)
-#else
-        if (errno == EWOULDBLOCK || errno == EAGAIN)
-#endif
-        {
-            return 0; // non-blocking call, no request pending
-        }
-        else
-        {
-#ifdef WINDOWS_OS
-            throw "Invalid Socket";
-#else
-            throw std::runtime_error("Invalid Socket");
-#endif
-        }
-    }
-
-    // make_nonblocking(new_sock);
-    Socket *r = new Socket(new_sock);
-    return r;
-}
 
 /**
  * Socket - Constructor
@@ -400,70 +295,8 @@ void Socket::SendLine(std::string s)
  */
 void Socket::SendBytes(char *s, int length)
 {
+    std::cout << "SendBytes -- " << "Socket FD : " << s_ << std::endl;
     send(s_, s, length, 0);
-}
-
-/**
- * SocketServer - Constructor
- */
-SocketServer::SocketServer(int port, int num_of_connections, TypeSocket type)
-{
-
-    memset(&socket_address, 0, sizeof(socket_address));
-
-    socket_address.sin_family = PF_INET;
-    socket_address.sin_port = htons(port);
-
-    // Initialize the socket file descriptor
-    // int socket(int domain, int type, int protocol)
-    // AF_INET      --> ipv4
-    // SOCK_STREAM  --> TCP
-    // SOCK_DGRAM   --> UDP
-    // protocol = 0 --> default for TCP
-    s_ = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-
-    if (s_ == INVALID_SOCKET)
-    {
-        std::cout << "Failed to create Socket Descriptor " << std::endl;
-        throw "INVALID_SOCKET";
-    }
-
-    if (type == NonBlockingSocket)
-    {
-        make_nonblocking(s_);
-    }
-
-    /* bind the socket to the internet address */
-    if (bind(s_, (sockaddr *)&socket_address, sizeof(sockaddr_in)) == SOCKET_BIND_ERROR)
-    {
-        std::cout << "Failed to Bind" << std::endl;
-        Close();
-        throw "INVALID_SOCKET";
-    }
-
-    ;
-
-    /**
-     * Listen for connections
-     */
-    if (listen(s_, num_of_connections) == SOCKET_LISTEN_ERROR)
-    {
-        std::cout << "Listening Socket Failed.. ...." << std::endl;
-        throw "LISTEN_ERROR";
-    }
-    else
-    {
-        printf("Started listening on local port : %d\n", port);
-    };
-}
-
-
-
-bool SocketSelect::Readable(Socket const *const s)
-{
-    if (FD_ISSET(s->s_, &fds_))
-        return true;
-    return false;
 }
 
 int Socket::GetSocket()

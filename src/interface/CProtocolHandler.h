@@ -1,7 +1,7 @@
 #ifndef PROTOCOL_HANDLER_H
 #define PROTOCOL_HANDLER_H
 
-#include "../socket/ServerSocket.h"
+#include "../socket/CServerSocket.h"
 
 class CProtocolHandler
 {

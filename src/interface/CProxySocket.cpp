@@ -6,6 +6,7 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
 {
 
     CLIENT_DATA clientData;
+    EXECUTION_CONTEXT* exec_context;
     memcpy(&clientData, lptr, sizeof(CLIENT_DATA));
     char bfr[32000];
     int RetVal;
@@ -78,12 +79,8 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
 #else
 
             cout << "Inside Default handler.." << endl;
-
-            if (!proxy_handler->HandleUpstreamData(bfr, RetVal, target))
-            {
-
-                return 0;
-            }
+            std::string result = proxy_handler->HandleUpstreamData(bfr, RetVal, exec_context);
+            target->SendBytes((char *) result.c_str(), result.size());
 
 #endif
             if (RetVal < 32000)
@@ -112,10 +109,8 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
             send(clientData.Sh, bfr, RetVal, 0);
 #else
             cout << "Inside Default handler(Down ).." << endl;
-            if (!proxy_handler->HandleDownStreamData(bfr, RetVal, client))
-            {
-                return 0;
-            }
+            std::string result = proxy_handler->HandleDownStreamData(bfr, RetVal, exec_context);
+            client->SendBytes((char *) result.c_str(), result.size());
 #endif
             if (RetVal < 32000)
             {

@@ -1,7 +1,7 @@
 #ifndef PROTOCOL_SOCKET_DOT_H
 #define PROTOCOL_SOCKET_DOT_H
 
-#include "../socket/ServerSocket.h"
+#include "../socket/CServerSocket.h"
 #include "CProxyHandler.h"
 #include "CProtocolHandler.h"
 

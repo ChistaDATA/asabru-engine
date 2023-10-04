@@ -38,6 +38,8 @@
 #endif
 #include <sys/select.h>
 #include <string>
+#include <iostream>
+#include "ThreadUtils.h"
 
 enum TypeSocket {BlockingSocket, NonBlockingSocket};
 
@@ -82,28 +84,5 @@ private:
   static void End();
   static int  nofSockets_;
 };
-
-
-
-class SocketServer : public Socket {
-public:
-  struct sockaddr_in socket_address;
-  SocketServer(int port, int num_of_connections, TypeSocket type=BlockingSocket);
-
-  Socket* Accept();
-};
-
-class SocketSelect {
-// http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winsock/wsapiref_2tiq.asp
-  public:
-    SocketSelect(Socket const * const s1, Socket const * const s2=NULL, TypeSocket type=BlockingSocket);
-
-    bool Readable(Socket const * const s);
-
-  private:
-    fd_set fds_;
-}; 
-
-
 
 #endif
