@@ -10,7 +10,7 @@
 #include <iostream>
 #include <functional>
 #include "ProtocolHelper.h"
-#include "ServerSocket.h"
+#include "CServerSocket.h"
 #include "Socket.h"
 // #include "uv.h"
 #include <unistd.h>
@@ -25,10 +25,7 @@ using namespace std;
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <pthread.h>
-
-
 #define DWORD unsigned long
-
 #endif
 
 #include "ThreadUtils.h"

@@ -7,9 +7,10 @@
 #ifndef PROXY_SOCKET_DOT_H
 #define PROXY_SOCKET_DOT_H
 
-#include "../socket/ServerSocket.h"           // Include the base class header
+#include "../socket/CServerSocket.h"           // Include the base class header
 #include "CProxyHandler.h"       // Include the proxy handler header
-#include "config_types.h"           // Include the configuration types header
+#include "config_types.h"        // Include the configuration types header
+#include "CommonTypes.h"           
 #include "ProtocolHelper.h"
 
 // Class definition for CProxySocket
