@@ -13,7 +13,7 @@ class CProtocolSocket : public CServerSocket {
     std::function<void *(void *)> thread_routine_override = 0;
 public:
 
-    CProtocolSocket(int port) : CServerSocket(port, "DEFAULT") {
+    CProtocolSocket(int port) : CServerSocket(port) {
         std::function<void *(void *)> myfunc = [this](void *ptr) -> void * {
             return CProtocolSocket::ThreadHandler(this, ptr);
         };

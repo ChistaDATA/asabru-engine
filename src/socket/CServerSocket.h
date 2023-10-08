@@ -1,104 +1,52 @@
-#ifndef SERVER_SOCKET_H
-#define SERVER_SOCKET_H
-
-#ifdef WINDOWS_OS
-#include <windows.h>
-#else // else POSIX
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <pthread.h>
-// #include "uv.h"
-
-#define DWORD unsigned long
-
-#endif
-
+#pragma once
 #include "Socket.h"
-#include "SocketServer.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <iostream>
-#include <functional>
-#include "ThreadUtils.h"
-// #include <chrono>
-// #include <thread>
-
-using namespace std;
-
-// Structure to represent client and target connections
-// typedef struct
-// {
-//     uv_tcp_t client;
-//     uv_tcp_t target;
-// } ClientTargetPair;
-
-typedef struct
-{
-    int client_port; // Socket Handle which represents a Client
-    SOCKET forward_port;   // In a non proxying mode, it will be -1
-    char remote_addr[32];  //  Address of incoming endpoint
-    void *ptr_to_instance; //  Pointer to the instance to which this ClientDATA belongs
-    char node_info[255];   //   Node Information
-    int mode;              //   R/W mode - Read Or Write
-    char ProtocolName[255];
-    Socket * client_socket;
-    // ClientTargetPair* client_target_pair;
-} CLIENT_DATA;
+#include "../config/EngineConstants.h"
+#include "ProtocolHelper.h"
 
 #ifdef WINDOWS_OS
 DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
 DWORD WINAPI ClientThreadProc(LPVOID lpParam);
-#else 
+#else
 // POSIX
 void *ListenThreadProc(void *lpParameter);
 void *ClientThreadProc(void *lpParam);
 #endif
 
-typedef struct
-{
-    char node_info[255];   // Encoded Current Node Information as String
-    int mode;              // R/W
-    void * ptr_to_instance; // Pointer to CServerSocket class
-} NODE_INFO;
-
 /**
  * CServerSocket
- * - This class holds the responsiblity for maintaining the 
- *   proxy server socket. 
-*/
-class CServerSocket
+ * - This class holds the responsiblity for maintaining the
+ *   proxy server socket.
+ */
+class CServerSocket : public Socket
 {
-    SocketServer * socket_server;
     int m_ProtocolPort = 3500;
     char Protocol[255];
+    int max_connections = MAX_CONNECTIONS;
+    NODE_INFO info;
+    struct sockaddr_in socket_address;
 
 public:
-    // Initialize libuv loop
-    // uv_loop_t *loop;
-    SOCKET m_ListnerSocket = -1;
 
-    NODE_INFO info;
+    // Constructor
+    CServerSocket(int port, int num_of_connections = MAX_CONNECTIONS, TypeSocket type = BlockingSocket);
 
-    /** Parametrized Thread Routine */ 
+    Socket* Accept();
+
+    /** Parametrized Thread Routine */
     std::function<void *(void *)> thread_routine;
+
+    bool StartListeningThread(std::string node_info, std::function<void *(void *)> pthread_routine);
+
+    // Open the server port and start listening
+    bool Open(std::string node_info, std::function<void *(void *)> pthread_routine);
+
+    SOCKET GetSocket();
 
 #ifdef WINDOWS_OS
     static DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
-    static DWORD WINAPI ClientThreadProc(LPVOID lpParam, ClientTargetPair* pair);
+    static DWORD WINAPI ClientThreadProc(LPVOID lpParam, ClientTargetPair *pair);
 #else
     static void *ListenThreadProc(void *lpParameter);
     static void *ClientThreadProc(void *lpParam);
 #endif
-    CServerSocket(int p_port, string protocol = "DEFAULT");
-    bool Open(string node_info, std::function<void *(void *)> pthread_routine);
-    bool StartListeningThread(string node_info, std::function<void *(void *)> pthread_routine);
-    bool Close();
-    bool Read(char *bfr, int size);
-    bool Write(char *bfr, int size);
 };
-
-#endif

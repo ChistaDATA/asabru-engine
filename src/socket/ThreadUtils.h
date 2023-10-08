@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <unistd.h>
 
 ////////////////////////////////
 #define INVALID_SOCKET (-1)

@@ -4,7 +4,7 @@
 #include <string>
 #include "CommonTypes.h"
 #include "../socket/CServerSocket.h"
-#include "../socket/SocketClient.h"
+#include "../socket/CClientSocket.h"
 
 class CProxyHandler
 {

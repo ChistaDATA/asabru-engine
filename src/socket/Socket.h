@@ -1,4 +1,4 @@
-/* 
+/*
    Socket.h
 
    Copyright (C) 2002-2017 René Nyffenegger
@@ -27,28 +27,32 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-#if WINDOWS_OS 
-    #include <WinSock2.h>
+#if WINDOWS_OS
+#include <WinSock2.h>
 #else
-    #define SOCKET int
-    #include <sys/socket.h>
-    #include <netinet/in.h>
-    #include <arpa/inet.h>
-    #include <unistd.h>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 #endif
 #include <sys/select.h>
 #include <string>
 #include <iostream>
 #include "ThreadUtils.h"
 
-enum TypeSocket {BlockingSocket, NonBlockingSocket};
+enum TypeSocket
+{
+  BlockingSocket,
+  NonBlockingSocket
+};
 
-class Socket {
+class Socket
+{
 public:
-
   virtual ~Socket();
-  Socket(const Socket&);
-  Socket& operator=(Socket&);
+  Socket(const Socket &);
+  Socket &operator=(Socket &);
 
   std::string ReceiveLine();
   std::string ReceiveBytes();
@@ -57,32 +61,33 @@ public:
 
   // The parameter of SendLine is not a const reference
   // because SendLine modifes the std::string passed.
-  void SendLine (std::string);
+  void SendLine(std::string);
 
   // The parameter of SendBytes is a const reference
-  // because SendBytes does not modify the std::string passed 
+  // because SendBytes does not modify the std::string passed
   // (in contrast to SendLine).
-  void SendBytes(char * s, int length);
-
-  int GetSocket();
+  void SendBytes(char *s, int length);
 
   static int make_nonblocking(int socket_file_descriptor);
 
+  int GetSocket();
+
 protected:
-  friend class SocketServer;
   friend class SocketSelect;
+  friend class CServerSocket;
+  friend class CClientSocket;
 
   Socket(SOCKET s);
   Socket();
 
   SOCKET s_;
 
-  int* refCounter_;
+  int *refCounter_;
 
 private:
   static void Start();
   static void End();
-  static int  nofSockets_;
+  static int nofSockets_;
 };
 
 #endif

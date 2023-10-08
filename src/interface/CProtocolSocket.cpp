@@ -3,7 +3,7 @@
 // https://github.com/eminfedar/async-sockets-cpp
 
 #include "Utils.h"
-#include "../socket/ClientSocket.h"
+#include "../socket/CClientSocket.h"
 #include "CProxySocket.h"
 #include "ProtocolHelper.h"
 #include "./CProtocolSocket.h"
