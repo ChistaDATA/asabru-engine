@@ -3,53 +3,77 @@
 // https://github.com/eminfedar/async-sockets-cpp
 //
 //
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <iostream>
-#include <functional>
-#include "ProtocolHelper.h"
 #include "CServerSocket.h"
-#include "Socket.h"
-// #include "uv.h"
-#include <unistd.h>
 
-using namespace std;
-
-#ifdef WINDOWS_OS
-#include <windows.h>
-#else
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <pthread.h>
-#define DWORD unsigned long
-#endif
-
-#include "ThreadUtils.h"
+//////////////////////////////////////////
+// CServerSocket Implementation
 
 /**
- * Constructor - Initialize Local Socket
- * @param proxy_port integer
- * @param protocol Protocol
+ * SocketServer - Constructor
  */
-CServerSocket::CServerSocket(int proxy_port, string protocol) : m_ProtocolPort(proxy_port)
+CServerSocket::CServerSocket(int port, int num_of_connections, TypeSocket type) : m_ProtocolPort(port), max_connections(num_of_connections)
 {
-    strcpy(Protocol, protocol.c_str());
+
+    memset(&socket_address, 0, sizeof(socket_address));
+
+    socket_address.sin_family = PF_INET;
+    socket_address.sin_port = htons(port);
+
+    // Initialize the socket file descriptor
+    // int socket(int domain, int type, int protocol)
+    // AF_INET      --> ipv4
+    // SOCK_STREAM  --> TCP
+    // SOCK_DGRAM   --> UDP
+    // protocol = 0 --> default for TCP
+    s_ = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+
+    if (s_ == INVALID_SOCKET)
+    {
+        std::cout << "Failed to create Socket Descriptor " << std::endl;
+        throw "INVALID_SOCKET";
+    }
+
+    if (type == NonBlockingSocket)
+    {
+        make_nonblocking(s_);
+    }
+}
+
+// Get the socket handle
+SOCKET CServerSocket::GetSocket()
+{
+    // return socket_server->GetSocket();
+    return s_;
 }
 
 /**
  * Open Socket
  */
 bool CServerSocket::Open(
-    string node_info, 
-    std::function<void *(void *)> pipeline_thread_routine
-)
+    std::string node_info,
+    std::function<void *(void *)> pipeline_thread_routine)
 {
-    socket_server = new SocketServer(m_ProtocolPort, MAX_CONNECTIONS);
-    
+    /* bind the socket to the internet address */
+    if (bind(s_, (sockaddr *)&socket_address, sizeof(sockaddr_in)) == SOCKET_BIND_ERROR)
+    {
+        std::cout << "Failed to Bind" << std::endl;
+        Close();
+        throw "INVALID_SOCKET";
+    };
+
+    /**
+     * Listen for connections
+     */
+    if (listen(s_, max_connections) == SOCKET_LISTEN_ERROR)
+    {
+        std::cout << "Listening Socket Failed.. ...." << std::endl;
+        throw "LISTEN_ERROR";
+    }
+    else
+    {
+        printf("Started listening on local port : %d\n", m_ProtocolPort);
+    };
+
     // Starts the listening thread
     return StartListeningThread(node_info, pipeline_thread_routine);
 }
@@ -57,7 +81,7 @@ bool CServerSocket::Open(
 /**
  *  Start a Listening Thread
  */
-bool CServerSocket::StartListeningThread(string node_info, std::function<void *(void *)> pipeline_thread_routine)
+bool CServerSocket::StartListeningThread(std::string node_info, std::function<void *(void *)> pipeline_thread_routine)
 {
 
     std::cout << "\nThread  => " << node_info << std::endl;
@@ -65,7 +89,7 @@ bool CServerSocket::StartListeningThread(string node_info, std::function<void *(
     info.mode = 1;
 
     this->thread_routine = pipeline_thread_routine;
-    info.ptr_to_instance = (void *) this;
+    info.ptr_to_instance = (void *)this;
 
     if (info.ptr_to_instance == 0)
         return false;
@@ -78,9 +102,9 @@ bool CServerSocket::StartListeningThread(string node_info, std::function<void *(
     int iret1 = pthread_create(&thread1, NULL, CServerSocket::ListenThreadProc, (void *)&info);
 #endif
 
-    std::cout << "Started Listening Thread :" << m_ProtocolPort << endl;
+    std::cout << "Started Listening Thread :" << m_ProtocolPort << std::endl;
     return true;
-} 
+}
 
 /**
  * The thread that listens to incoming connections to the socket.
@@ -90,7 +114,7 @@ bool CServerSocket::StartListeningThread(string node_info, std::function<void *(
 DWORD WINAPI CServerSocket::ListenThreadProc(
     LPVOID lpParameter)
 #else
-void * CServerSocket::ListenThreadProc(
+void *CServerSocket::ListenThreadProc(
     void *lpParameter)
 #endif
 {
@@ -99,35 +123,36 @@ void * CServerSocket::ListenThreadProc(
     NODE_INFO info;
     memcpy(&info, lpParameter, sizeof(NODE_INFO));
 
-    cout << "node info => " << string(info.node_info) << endl;
+    std::cout << "node info => " << std::string(info.node_info) << std::endl;
 
     CServerSocket *curr_instance = (CServerSocket *)(info.ptr_to_instance);
-    if (curr_instance == 0) {
-        cout << "Failed to retrieve current instance pointer" << endl;
+    if (curr_instance == 0)
+    {
+        std::cout << "Failed to retrieve current instance pointer" << std::endl;
         return 0;
     }
 
-    SocketServer * socket_server = curr_instance->socket_server;
-    
-    cout << "Started listening thread loop :\n" << endl;
+    // CServerSocket *socket_server = curr_instance->socket_server;
+
+    std::cout << "Started listening thread loop :\n"
+         << std::endl;
 
     while (1)
-    {    
+    {
 
-        Socket * new_sock = socket_server->Accept();
-        cout << "Accepted connection :" << endl;
+        Socket *new_sock = curr_instance->Accept();
+        std::cout << "Accepted connection :" << std::endl;
 
         CLIENT_DATA clientData;
-        
         clientData.client_port = new_sock->GetSocket();
         memcpy(clientData.node_info, info.node_info, 255);
 
         clientData.mode = info.mode;
-        string remote_ip = ProtocolHelper::GetIPAddressAsString(&(socket_server->socket_address));
+        std::string remote_ip = ProtocolHelper::GetIPAddressAsString(&(curr_instance->socket_address));
         strcpy(clientData.remote_addr, remote_ip.c_str());
-        cout << "Remote IP address : " << remote_ip << endl;
-        string remote_port = ProtocolHelper::GetIPPortAsString(&(socket_server->socket_address));
-        cout << "Remote port : " << remote_port << endl;
+        std::cout << "Remote IP address : " << remote_ip << std::endl;
+        std::string remote_port = ProtocolHelper::GetIPPortAsString(&(curr_instance->socket_address));
+        std::cout << "Remote port : " << remote_port << std::endl;
         clientData.ptr_to_instance = curr_instance;
         clientData.client_socket = new_sock;
 
@@ -144,7 +169,6 @@ void * CServerSocket::ListenThreadProc(
     return 0;
 }
 
-
 /**
  * Creates a client thread procedure that handles incoming and outgoing
  * messages to the socket. It offloads the work to the handler
@@ -154,12 +178,46 @@ DWORD WINAPI CServerSocket::ClientThreadProc(
     LPVOID lpParam)
 #else
 void *CServerSocket::ClientThreadProc(
-    void *lpParam)
+    void *threadParams)
 #endif
 {
 
     CLIENT_DATA clientData;
-    memcpy(&clientData, lpParam, sizeof(CLIENT_DATA));
-    ((CServerSocket *)clientData.ptr_to_instance)->thread_routine(lpParam);
+    memcpy(&clientData, threadParams, sizeof(CLIENT_DATA));
+    ((CServerSocket *)clientData.ptr_to_instance)->thread_routine((void *) &clientData);
     return 0;
+}
+
+/**
+ * Method that accepts a new connection to the listening socket,
+ * makes the new socket connection non blocking and returns
+ * reference to the Socket object.
+ */
+Socket * CServerSocket::Accept()
+{
+    SOCKET new_sock = accept(s_, 0, 0);
+    if (new_sock == INVALID_SOCKET)
+    {
+#ifdef WINDOWS_OS
+        int rc = WSAGetLastError();
+        if (rc == WSAEWOULDBLOCK)
+#else
+        if (errno == EWOULDBLOCK || errno == EAGAIN)
+#endif
+        {
+            return 0; // non-blocking call, no request pending
+        }
+        else
+        {
+#ifdef WINDOWS_OS
+            throw "Invalid Socket";
+#else
+            throw std::runtime_error("Invalid Socket");
+#endif
+        }
+    }
+
+    // make_nonblocking(new_sock);
+    Socket *r = new Socket(new_sock);
+    return r;
 }

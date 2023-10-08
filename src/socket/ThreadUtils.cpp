@@ -1,5 +1,6 @@
 #include "ThreadUtils.h"
 
+
 #ifdef WINDOWS_OS
 
 //--------------- Call WSACleanUP for resource de-allocation
@@ -57,7 +58,8 @@ bool StartSocket() { return true; }
 int SocketGetLastError() { return 0xFFFF; }
 int CloseSocket(int s)
 {
-    shutdown(s, 2);
+    // shutdown(s, 2);
+    close(s);
     return 0;
 }
 #define INVALID_SOCKET (-1)

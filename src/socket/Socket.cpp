@@ -68,11 +68,6 @@ void Socket::End()
     WSACleanup();
 }
 
-void Socket::Close()
-{
-    closesocket(s_);
-}
-
 int Socket::make_nonblocking(int file_descriptor)
 {
     // Set socket to non-blocking
@@ -106,11 +101,6 @@ void Socket::End()
     // On Linux, there is no equivalent to WSACleanup().
     // Cleanup of resources is typically done using close() for individual sockets.
     // You can add any necessary cleanup code here if required.
-}
-
-void Socket::Close()
-{
-    close(s_);
 }
 
 int Socket::make_nonblocking(int file_descriptor)
@@ -302,4 +292,9 @@ void Socket::SendBytes(char *s, int length)
 int Socket::GetSocket()
 {
     return this->s_;
+}
+
+void Socket::Close()
+{
+    CloseSocket(s_);
 }

@@ -27,7 +27,7 @@ class CProxySocket : public CServerSocket
 
 public:
     // Constructor: Initializes the CProxySocket instance
-    explicit CProxySocket(int port) : CServerSocket(port, "DEFAULT")
+    explicit CProxySocket(int port) : CServerSocket(port)
     {
         // Create a lambda function that wraps the ThreadHandler
         std::function<void *(void *)> pipelineLambda = [this](void *ptr) -> void *

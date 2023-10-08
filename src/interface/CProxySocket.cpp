@@ -1,130 +1,105 @@
 #include "CProxySocket.h"
-#include "../socket/ClientSocket.h"
+#include "../socket/CClientSocket.h"
 #include "ProtocolHelper.h"
+#include "../socket/SocketSelect.h"
 
 void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
 {
-
     CLIENT_DATA clientData;
-    EXECUTION_CONTEXT* exec_context;
     memcpy(&clientData, lptr, sizeof(CLIENT_DATA));
-    char bfr[32000];
-    int RetVal;
 
-    END_POINT *ep = new END_POINT{"127.0.0.1", 9440, 1, "", 0,
-                                  "  "}; // Resolve("firstcluster", "127.0.0.1" , 9000, pd );
-    if (ep == 0)
-    {
-        return 0;
-    }
+    // Check if handler is defined
     CProxyHandler *proxy_handler = ptr->GetHandler();
     if (proxy_handler == 0)
     {
-        return 0;
-    }
-    cout << "Resolved Host: " << ep->ipaddress << ", Port: " << ep->port << endl;
-    CClientSocket *client_sock = new CClientSocket((char *)(ep->ipaddress.c_str()), ep->port);
-    if (client_sock == 0)
-    {
-        cout << "Failed to Create Client" << endl;
-        return 0;
-    }
-    if (!client_sock->Resolve())
-    {
-        cout << "Failed to Resolve Client" << endl;
-        delete client_sock;
-        return 0;
-    }
-    if (!client_sock->Connect())
-    {
-        cout << "Failed To Connect " << endl;
-        delete client_sock;
-        return 0;
-    }
-    SOCKET s = client_sock->GetSocket();
-    if (s == -1)
-    {
-        cout << "Invalid Socket" << endl;
+        cout << "The handler is not defined. Exiting!" << endl;
         return 0;
     }
 
-    Socket *client;
-    SocketClient *target;
-    clientData.forward_port = s;
-    // ProtocolHelper::SetReadTimeOut(s, 1);
-    // ProtocolHelper::SetReadTimeOut(clientData.client_port, 1);
-    int num_cycles = 0;
-    cout << "Entered Nested Loop " << endl;
+    /**
+     * Get the configuration data for the target database clusters ( eg. clickhouse )
+     * Config given in config.xml
+     */
+    RESOLVE_ENDPOINT_RESULT result = ptr->GetConfigValues();
+    END_POINT *target_endpoint = new END_POINT{result.ipaddress, result.port, result.r_w, result.alias, result.reserved, "  "}; // Resolve("firstcluster", "127.0.0.1" , 9000, pd );
+    if (target_endpoint == 0)
+    {
+        cout << "Failed to retrieve target database configuration. Exiting!" << endl;
+        return 0;
+    }
+    cout << "Resolved (Target) Host: " << target_endpoint->ipaddress << endl
+         << "Resolved (Target) Port: " << target_endpoint->port << endl;
+
+    Socket *client_socket = (Socket *)clientData.client_socket;
+    CClientSocket *target_socket = new CClientSocket(target_endpoint->ipaddress, target_endpoint->port);
+
+    EXECUTION_CONTEXT exec_context;
+
+    ProtocolHelper::SetReadTimeOut(client_socket->GetSocket(), 1);
+    ProtocolHelper::SetReadTimeOut(target_socket->GetSocket(), 1);
+
     while (1)
     {
-        num_cycles++;
-        while (1)
+        SocketSelect *sel;
+        try
         {
-            memset(bfr, 0, 32000);
-
-            RetVal = recv(clientData.client_port, bfr, sizeof(bfr), 0);
-            if (RetVal == -1)
-            {
-                // cout << "Socket Error...or...Socket Empty " << endl;
-                break;
-            }
-            if (RetVal == 0)
-            {
-                num_cycles++;
-                break;
-            }
-            // Call HandleUpStream(bfr,retVal, clientData);
-#ifdef INLINE_LOGIC
-            send(clientData.forward_port, bfr, RetVal, 0);
-#else
-
-            cout << "Inside Default handler.." << endl;
-            std::string result = proxy_handler->HandleUpstreamData(bfr, RetVal, exec_context);
-            target->SendBytes((char *) result.c_str(), result.size());
-
-#endif
-            if (RetVal < 32000)
-            {
-                break;
-            }
-            RetVal = 0;
+            sel = new SocketSelect(client_socket, target_socket, NonBlockingSocket);
+        }
+        catch (std::exception &e)
+        {
+            cout << e.what() << endl;
+            cout << "error occurred while creating socket select " << endl;
         }
 
-        while (1)
+        bool still_connected = true;
+        try
         {
-            memset(bfr, 0, 32000);
-            RetVal = recv(clientData.forward_port, bfr, sizeof(bfr), 0);
+            if (sel->Readable(client_socket))
+            {
+                cout << "client socket is readable, reading bytes : " << endl;
+                std::string bytes = client_socket->ReceiveBytes();
 
-            if (RetVal == -1)
-            {
-                break;
+                cout << "Calling Proxy Upstream Handler.." << endl;
+                std::string response = proxy_handler->HandleUpstreamData((void *)bytes.c_str(), bytes.size(), &exec_context);
+                target_socket->SendBytes((char *)response.c_str(), response.size());
+
+                if (bytes.empty())
+                    still_connected = false;
             }
-            if (RetVal == 0)
-            {
-                num_cycles++;
-                break;
-            }
-            // call HandleDownStream(bfr, RetVal, clientData);
-#ifdef INLINE_LOGIC
-            send(clientData.Sh, bfr, RetVal, 0);
-#else
-            cout << "Inside Default handler(Down ).." << endl;
-            std::string result = proxy_handler->HandleDownStreamData(bfr, RetVal, exec_context);
-            client->SendBytes((char *) result.c_str(), result.size());
-#endif
-            if (RetVal < 32000)
-            {
-                break;
-            }
-            RetVal = 0;
+        }
+        catch (std::exception &e)
+        {
+            cout << "Error while sending to target " << e.what() << endl;
         }
 
-        if (num_cycles > 15)
+        try
         {
-            // cout <<"....................." << endl ;
+            if (sel->Readable(target_socket))
+            {
+                cout << "target socket is readable, reading bytes : " << endl;
+                std::string bytes = target_socket->ReceiveBytes();
+
+                cout << "Calling Proxy Downstream Handler.." << endl;
+                std::string response = proxy_handler->HandleDownStreamData((void *)bytes.c_str(), bytes.size(), &exec_context);
+                client_socket->SendBytes((char *)response.c_str(), response.size());
+
+                if (bytes.empty())
+                    still_connected = false;
+            }
+        }
+        catch (std::exception &e)
+        {
+            cout << "Error while sending to client " << e.what() << endl;
+        }
+
+        if (!still_connected)
+        {
             break;
         }
     }
-
+#ifdef WINDOWS_OS
     return 0;
+#else
+    return nullptr;
+#endif
 }
