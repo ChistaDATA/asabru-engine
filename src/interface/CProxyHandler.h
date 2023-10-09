@@ -3,10 +3,11 @@
 
 #include <string>
 #include "CommonTypes.h"
+#include "BaseHandler.h"
 #include "../socket/CServerSocket.h"
 #include "../socket/CClientSocket.h"
 
-class CProxyHandler
+class CProxyHandler : BaseHandler
 {
 public:
     CProxyHandler() {}
