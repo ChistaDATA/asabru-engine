@@ -2,8 +2,9 @@
 #define PROTOCOL_HANDLER_H
 
 #include "../socket/CServerSocket.h"
+#include "BaseHandler.h"
 
-class CProtocolHandler
+class CProtocolHandler : BaseHandler
 {
 public:
     CProtocolHandler() {}
