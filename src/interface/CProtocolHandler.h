@@ -3,13 +3,14 @@
 
 #include "../socket/CServerSocket.h"
 #include "BaseHandler.h"
+#include "CommonTypes.h"
 
 class CProtocolHandler : BaseHandler
 {
 public:
     CProtocolHandler() {}
 
-    virtual bool Handler(void *Buffer, int len, CLIENT_DATA &clientData) = 0;
+    virtual std::string HandleData(void *buffer, int buffer_length, EXECUTION_CONTEXT *exec_context) = 0;
 
     virtual ~CProtocolHandler() {}
 };
