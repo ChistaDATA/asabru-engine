@@ -10,7 +10,6 @@
 
 void *CProtocolSocket::ThreadHandler(CProtocolSocket *ptr, void *lptr)
 {
-
     CLIENT_DATA clientData;
     memcpy(&clientData, lptr, sizeof(CLIENT_DATA));
     CProtocolHandler *proto_handler = ptr->GetHandler();
@@ -19,7 +18,11 @@ void *CProtocolSocket::ThreadHandler(CProtocolSocket *ptr, void *lptr)
         return 0;
     }
 
+    Socket *client_socket = (Socket *)clientData.client_socket;
+    EXECUTION_CONTEXT  context;
+
     char bfr[32000];
+
     while (1)
     {
         memset(bfr, 0, 32000);
@@ -28,10 +31,9 @@ void *CProtocolSocket::ThreadHandler(CProtocolSocket *ptr, void *lptr)
         {
             return nullptr;
         }
-        if (!(proto_handler->Handler(bfr, num_read, clientData)))
-        {
-            break;
-        }
+        std::string response = proto_handler->HandleData(bfr, num_read, &context);
+        client_socket->SendBytes((char *)response.c_str(), response.size());
+
     }
     return 0;
 }

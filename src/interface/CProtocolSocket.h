@@ -39,7 +39,6 @@ public:
     bool Start() {
         return Open("<str>", thread_routine_override);
     }
-
 };
 
 #endif
