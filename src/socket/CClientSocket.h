@@ -3,7 +3,7 @@
 #include <string>
 #include "ProtocolHelper.h"
 #include "ThreadUtils.h"
-#include "config_types.h"
+// #include "config_types.h"
 
 using namespace std;
 #define SOCKET int

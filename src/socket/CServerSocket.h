@@ -12,6 +12,7 @@ void *ListenThreadProc(void *lpParameter);
 void *ClientThreadProc(void *lpParam);
 #endif
 
+
 /**
  * CServerSocket
  * - This class holds the responsiblity for maintaining the
@@ -50,3 +51,8 @@ public:
     static void *ClientThreadProc(void *lpParam);
 #endif
 };
+
+// typedef void *(*PipelineFunction)(CServerSocket *ptr, void *lptr);
+
+template <typename T>
+using PipelineFunction = void *(*)(T *ptr, void *lptr);
