@@ -17,7 +17,7 @@
 class CProxySocket : public CServerSocket
 {
     CProxyHandler *m_handler = nullptr; // Pointer to the proxy handler instance
-    RESOLVE_ENDPOINT_RESULT m_configValues; // Configuration values for the proxy socket
+    TARGET_ENDPOINT_CONFIG m_configValues; // Configuration values for the proxy socket
 
     // Static thread handler function for internal use
     static void *ThreadHandler(CProxySocket *ptr, void *lptr);
@@ -45,7 +45,7 @@ public:
     }
 
     // Set a custom pipeline function for the socket
-    bool SetPipeline(std::function<void *(CProxySocket *, void *)> pipelineFunction)
+    bool SetPipeline(PipelineFunction<CProxySocket> pipelineFunction)
     {
         // Create a lambda that wraps the provided pipeline function
         std::function<void *(void *)> pipelineLambda = [this, pipelineFunction](void *ptr) -> void *
@@ -61,14 +61,14 @@ public:
     CProxyHandler *GetHandler() { return m_handler; }
 
     // Set configuration values for the proxy socket
-    bool SetConfigValues(RESOLVE_ENDPOINT_RESULT configValues)
+    bool SetConfigValues(TARGET_ENDPOINT_CONFIG configValues)
     {
         m_configValues = configValues;
         return true;
     }
 
     // Get configuration values for the proxy socket
-    RESOLVE_ENDPOINT_RESULT GetConfigValues()
+    TARGET_ENDPOINT_CONFIG GetConfigValues()
     {
         return m_configValues;
     }

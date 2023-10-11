@@ -25,7 +25,7 @@ public:
         return m_handler != 0;
     }
 
-    bool SetPipeline(std::function<void *(CProtocolSocket *, void *)> test_func) {
+    bool SetPipeline(PipelineFunction<CProtocolSocket> test_func) {
         std::function<void *(void *)> myfunc = [this, test_func](void *ptr) -> void * {
             return test_func(this, ptr);
         };
