@@ -122,6 +122,7 @@ void *CServerSocket::ListenThreadProc(
 
     NODE_INFO info;
     memcpy(&info, lpParameter, sizeof(NODE_INFO));
+    int current_service_index = 0;
 
     std::cout << "node info => " << std::string(info.node_info) << std::endl;
 
@@ -133,20 +134,18 @@ void *CServerSocket::ListenThreadProc(
     }
 
     // CServerSocket *socket_server = curr_instance->socket_server;
-
     std::cout << "Started listening thread loop :\n"
-         << std::endl;
+              << std::endl;
+
 
     while (1)
     {
-
         Socket *new_sock = curr_instance->Accept();
         std::cout << "Accepted connection :" << std::endl;
 
         CLIENT_DATA clientData;
         clientData.client_port = new_sock->GetSocket();
         memcpy(clientData.node_info, info.node_info, 255);
-
         clientData.mode = info.mode;
         std::string remote_ip = ProtocolHelper::GetIPAddressAsString(&(curr_instance->socket_address));
         strcpy(clientData.remote_addr, remote_ip.c_str());
@@ -155,6 +154,18 @@ void *CServerSocket::ListenThreadProc(
         std::cout << "Remote port : " << remote_port << std::endl;
         clientData.ptr_to_instance = curr_instance;
         clientData.client_socket = new_sock;
+
+        /**
+         * We need to configure client data, such that the new connection is made to a target endpoint
+         * based on a algorithm. For eg. round robin
+         *
+         * If there are multiple services in endpoint configuration, we would choose a target service based on a round robin manner.
+         * ( TODO: The algorithm used here would be configurable. )
+         *
+         * If there is only one service in the endpoint configuration, then we can directly choose the target service.
+         */
+        clientData.current_service_index = current_service_index;
+        current_service_index = ( current_service_index + 1 ) % 100;
 
 #ifdef WINDOWS_OS
         DWORD ThreadId;
@@ -184,7 +195,7 @@ void *CServerSocket::ClientThreadProc(
 
     CLIENT_DATA clientData;
     memcpy(&clientData, threadParams, sizeof(CLIENT_DATA));
-    ((CServerSocket *)clientData.ptr_to_instance)->thread_routine((void *) &clientData);
+    ((CServerSocket *)clientData.ptr_to_instance)->thread_routine((void *)&clientData);
     return 0;
 }
 
@@ -193,7 +204,7 @@ void *CServerSocket::ClientThreadProc(
  * makes the new socket connection non blocking and returns
  * reference to the Socket object.
  */
-Socket * CServerSocket::Accept()
+Socket *CServerSocket::Accept()
 {
     SOCKET new_sock = accept(s_, 0, 0);
     if (new_sock == INVALID_SOCKET)

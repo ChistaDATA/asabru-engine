@@ -7,7 +7,7 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
 {
     CLIENT_DATA clientData;
     memcpy(&clientData, lptr, sizeof(CLIENT_DATA));
-
+    
     // Check if handler is defined
     CProxyHandler *proxy_handler = ptr->GetHandler();
     if (proxy_handler == 0)
@@ -20,8 +20,11 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
      * Get the configuration data for the target database clusters ( eg. clickhouse )
      * Config given in config.xml
      */
-    TARGET_ENDPOINT_CONFIG result = ptr->GetConfigValues();
-    END_POINT *target_endpoint = new END_POINT{result.ipaddress, result.port, result.r_w, result.alias, result.reserved, "  "}; // Resolve("firstcluster", "127.0.0.1" , 9000, pd );
+    TARGET_ENDPOINT_CONFIG targetEndpointConfig = ptr->GetConfigValues();
+    int services_count = targetEndpointConfig.services.size();
+    int current_service_index = clientData.current_service_index % services_count;
+    RESOLVED_SERVICE currentService = targetEndpointConfig.services[current_service_index];
+    END_POINT *target_endpoint = new END_POINT{currentService.ipaddress, currentService.port, currentService.r_w, currentService.alias, currentService.reserved, "  "}; 
     if (target_endpoint == 0)
     {
         cout << "Failed to retrieve target database configuration. Exiting!" << endl;
