@@ -14,6 +14,7 @@ typedef struct
     int mode;              //   R/W mode - Read Or Write
     char ProtocolName[255];
     Socket * client_socket;
+    int current_service_index;
 } CLIENT_DATA;
 
 typedef struct
