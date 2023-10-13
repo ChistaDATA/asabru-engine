@@ -207,7 +207,7 @@ Socket &Socket::operator=(Socket &o)
 std::string Socket::ReceiveBytes()
 {
     std::string ret;
-    char buf[1024];
+    char buffer[1024];
 
     while (1)
     {
@@ -225,13 +225,18 @@ std::string Socket::ReceiveBytes()
         if (arg > 1024)
             arg = 1024;
 
-        int rv = recv(s_, buf, arg, 0);
-        if (rv <= 0)
+        ssize_t bytesRead = recv(s_, buffer, arg, 0);
+        if (bytesRead < 0) {
+            std::cerr << "Error reading from client" << std::endl;
             break;
+        } else if (bytesRead == 0) {
+            std::cerr << "Connection closed by client" << std::endl;
+            break;
+        }
 
         std::string t;
 
-        t.assign(buf, rv);
+        t.assign(buffer, bytesRead);
         ret += t;
     }
 
@@ -285,7 +290,6 @@ void Socket::SendLine(std::string s)
  */
 void Socket::SendBytes(char *s, int length)
 {
-    std::cout << "SendBytes -- " << "Socket FD : " << s_ << std::endl;
     send(s_, s, length, 0);
 }
 
