@@ -13,13 +13,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Add compiler warnings
 if (CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-Wall)
-endif()
+endif ()
 
 # Set source directory
 set(SOURCE_DIRECTORY "src")
 
 # Collect all source files
-file(GLOB_RECURSE SOURCE_FILES "${SOURCE_DIRECTORY}/*.cpp")
+file(GLOB_RECURSE SOURCE_FILES "${SOURCE_DIRECTORY}/**/*.cpp")
 
 # Add build directory
 set(BUILD_DIRECTORY "build")
@@ -31,14 +31,14 @@ set(LIB_DIRECTORY "lib")
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
 # Set output directory for libraries
-set_target_properties(${PROJECT_NAME} 
-  PROPERTIES 
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIB_DIRECTORY}
-)
+set_target_properties(${PROJECT_NAME}
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIB_DIRECTORY}
+        )
 
 target_link_libraries(
-    ${PROJECT_NAME} 
-        # ${CMAKE_SOURCE_DIR}/lib/libuv/build/libuv.a
+        ${PROJECT_NAME}
+        ${CMAKE_SOURCE_DIR}/lib/libuv/build/libuv.a
         ${CMAKE_SOURCE_DIR}/lib/asabru-commons/build/lib/libasabru_commons.a
 )
 

@@ -4,12 +4,10 @@
 //
 //
 #include "CServerSocket.h"
-
-//////////////////////////////////////////
-// CServerSocket Implementation
+#include <utility>
 
 /**
- * SocketServer - Constructor
+ * CServerSocket - Constructor
  */
 CServerSocket::CServerSocket(int port, int num_of_connections, TypeSocket type) : m_ProtocolPort(port), max_connections(num_of_connections)
 {
@@ -37,13 +35,6 @@ CServerSocket::CServerSocket(int port, int num_of_connections, TypeSocket type) 
     {
         make_nonblocking(s_);
     }
-}
-
-// Get the socket handle
-SOCKET CServerSocket::GetSocket()
-{
-    // return socket_server->GetSocket();
-    return s_;
 }
 
 /**
@@ -81,7 +72,7 @@ bool CServerSocket::Open(
 /**
  *  Start a Listening Thread
  */
-bool CServerSocket::StartListeningThread(std::string node_info, std::function<void *(void *)> pipeline_thread_routine)
+bool CServerSocket::StartListeningThread(const std::string& node_info, std::function<void *(void *)> pipeline_thread_routine)
 {
 
     std::cout << "\nThread  => " << node_info << std::endl;

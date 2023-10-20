@@ -68,7 +68,7 @@ void Socket::End()
     WSACleanup();
 }
 
-int Socket::make_nonblocking(int file_descriptor)
+int make_nonblocking(int file_descriptor)
 {
     // Set socket to non-blocking
     u_long mode = 1; // 0 for blocking and 1 for non-blocking ; By default socket is blocking
@@ -103,7 +103,7 @@ void Socket::End()
     // You can add any necessary cleanup code here if required.
 }
 
-int Socket::make_nonblocking(int file_descriptor)
+int make_nonblocking(int file_descriptor)
 {
     int flags = fcntl(file_descriptor, F_GETFL, 0);
     if (flags == -1)
@@ -188,7 +188,7 @@ Socket::Socket(const Socket &o)
  * Socket - Constructor using the operator `=`
  * @param o another socket object
  */
-Socket &Socket::operator=(Socket &o)
+Socket &Socket::operator=(const Socket &o)
 {
     (*o.refCounter_)++;
 

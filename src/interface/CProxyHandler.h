@@ -12,9 +12,9 @@ class CProxyHandler : BaseHandler
 public:
     CProxyHandler() {}
 
-    virtual std::string HandleUpstreamData(void *buffer, int buffer_length, EXECUTION_CONTEXT *exec_context) = 0;
+    virtual std::string HandleUpstreamData(void *buffer, ssize_t buffer_length, EXECUTION_CONTEXT *exec_context) = 0;
 
-    virtual std::string HandleDownStreamData(void *buffer, int buffer_length, EXECUTION_CONTEXT *exec_context) = 0;
+    virtual std::string HandleDownStreamData(void *buffer, ssize_t buffer_length, EXECUTION_CONTEXT *exec_context) = 0;
 
     virtual ~CProxyHandler() {}
 };

@@ -1,8 +1,16 @@
 #pragma once
 #include <sys/socket.h>
+#include "uv.h"
 #include "../socket/Socket.h"
 
 #define SOCKET int
+
+// Structure to represent client and target connections
+typedef struct
+{
+    uv_tcp_t client;
+    uv_tcp_t target;
+} ClientTargetPair;
 
 typedef struct
 {
@@ -15,6 +23,7 @@ typedef struct
     char ProtocolName[255];
     Socket * client_socket;
     int current_service_index;
+    ClientTargetPair *client_target_pair;
 } CLIENT_DATA;
 
 typedef struct
