@@ -1,7 +1,7 @@
 #pragma once
-#include "Socket.h"
 #include "../config/EngineConstants.h"
 #include "ProtocolHelper.h"
+#include "uv.h"
 
 #ifdef WINDOWS_OS
 DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
@@ -15,23 +15,20 @@ void *ClientThreadProc(void *lpParam);
 
 /**
  * CServerSocket
- * - This class holds the responsibility for maintaining the
- *   proxy server socket.
+ * - This class holds the responsiblity for maintaining the
+ *   libuv proxy server socket.
  */
-class CServerSocket : public Socket
+class LibuvServerSocket
 {
     int m_ProtocolPort = 3500;
     char Protocol[255];
     int max_connections = MAX_CONNECTIONS;
-    NODE_INFO info;
     struct sockaddr_in socket_address;
-
 public:
+    int current_service_index = 0;
 
     // Constructor
-    CServerSocket(int port, int num_of_connections = MAX_CONNECTIONS, TypeSocket type = BlockingSocket);
-
-    Socket* Accept();
+    LibuvServerSocket(int port, int num_of_connections = MAX_CONNECTIONS, TypeSocket type = BlockingSocket);
 
     /** Parametrized Thread Routine */
     std::function<void *(void *)> thread_routine;
@@ -48,6 +45,8 @@ public:
     static void *ListenThreadProc(void *lpParameter);
     static void *ClientThreadProc(void *lpParam);
 #endif
+    uv_loop_t *loop;
+    NODE_INFO info;
 };
 
 // typedef void *(*PipelineFunction)(CServerSocket *ptr, void *lptr);

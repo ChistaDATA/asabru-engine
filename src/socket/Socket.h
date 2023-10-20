@@ -35,59 +35,67 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+
 #endif
+
 #include <sys/select.h>
 #include <string>
 #include <iostream>
 #include "ThreadUtils.h"
 
-enum TypeSocket
-{
-  BlockingSocket,
-  NonBlockingSocket
+enum TypeSocket {
+    BlockingSocket,
+    NonBlockingSocket
 };
 
-class Socket
-{
+int make_nonblocking(int socket_file_descriptor);
+
+class Socket {
 public:
-  virtual ~Socket();
-  Socket(const Socket &);
-  Socket &operator=(Socket &);
+    virtual ~Socket();
 
-  std::string ReceiveLine();
-  std::string ReceiveBytes();
+    Socket(const Socket &);
 
-  void Close();
+    Socket &operator=(Socket const &);
 
-  // The parameter of SendLine is not a const reference
-  // because SendLine modifes the std::string passed.
-  void SendLine(std::string);
+    std::string ReceiveLine();
 
-  // The parameter of SendBytes is a const reference
-  // because SendBytes does not modify the std::string passed
-  // (in contrast to SendLine).
-  void SendBytes(char *s, int length);
+    std::string ReceiveBytes();
 
-  static int make_nonblocking(int socket_file_descriptor);
+    // The parameter of SendLine is not a const reference
+    // because SendLine modifies the std::string passed.
+    void SendLine(std::string);
 
-  int GetSocket();
+    // The parameter of SendBytes is a const reference
+    // because SendBytes does not modify the std::string passed
+    // (in contrast to SendLine).
+    void SendBytes(char *s, int length);
+
+    int GetSocket();
+
+    void Close();
 
 protected:
-  friend class SocketSelect;
-  friend class CServerSocket;
-  friend class CClientSocket;
+    friend class SocketSelect;
 
-  Socket(SOCKET s);
-  Socket();
+    friend class CServerSocket;
 
-  SOCKET s_;
+    friend class CClientSocket;
 
-  int *refCounter_;
+    Socket(SOCKET s);
+
+    Socket();
+
+    SOCKET s_;
+
+    int *refCounter_;
 
 private:
-  static void Start();
-  static void End();
-  static int nofSockets_;
+    static void Start();
+
+    static void End();
+
+    static int nofSockets_;
 };
 
 #endif
