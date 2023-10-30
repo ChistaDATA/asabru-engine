@@ -15,6 +15,9 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-Wall)
 endif ()
 
+# Find OpenSSL library
+find_package(OpenSSL REQUIRED)
+
 # Set source directory
 set(SOURCE_DIRECTORY "src")
 
@@ -38,6 +41,7 @@ set_target_properties(${PROJECT_NAME}
 
 target_link_libraries(
         ${PROJECT_NAME}
+        OpenSSL::SSL
         ${CMAKE_SOURCE_DIR}/lib/libuv/build/libuv.a
         ${CMAKE_SOURCE_DIR}/lib/asabru-commons/build/lib/libasabru_commons.a
 )
