@@ -138,7 +138,7 @@ Socket::Socket() : s_(0)
 
     if (s_ == INVALID_SOCKET)
     {
-        throw "INVALID_SOCKET";
+        throw std::runtime_error("INVALID_SOCKET");
     }
 
     refCounter_ = new int(1);

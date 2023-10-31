@@ -42,7 +42,7 @@ CClientSocket::CClientSocket(std::string server_name, int client_port) : m_Serve
         {
             std::cout << "Unable to get host endpoint by name " << std::endl;
             error = strerror(errno);
-            throw error;
+            throw std::runtime_error(error);
         }
     }
     catch (std::exception &e)
@@ -62,13 +62,14 @@ CClientSocket::CClientSocket(std::string server_name, int client_port) : m_Serve
 
     if (::connect(s_, (sockaddr *)&addr, sizeof(sockaddr)))
     {
-        std::cout << "Unable to connect to the host endpoint " << std::endl;
+
 #if WINDOWS_OS
         error = strerror(WSAGetLastError());
 #else
         error = strerror(errno);
 #endif
-        throw error;
+        std::cout << "Unable to connect to the host endpoint : " << error << std::endl;
+        throw std::runtime_error(error);
     }
 }
 
@@ -99,7 +100,7 @@ bool CClientSocket::Connect()
 #else
         error = strerror(errno);
 #endif
-        throw error;
+        throw std::runtime_error(error);
     }
 }
 
@@ -117,14 +118,14 @@ bool CClientSocket::Resolve(const std::string &host)
             {
                 std::cout << "Unable to get host endpoint by name " << std::endl;
                 error = strerror(errno);
-                throw error;
+                throw std::runtime_error(error);
             }
         }
         catch (std::exception &e)
         {
             std::cout << e.what() << std::endl;
             std::cout << "Unable to get host endpoint by name " << std::endl;
-            throw error;
+            throw std::runtime_error(error);
         }
 
         return true;
@@ -141,7 +142,7 @@ bool CClientSocket::Resolve(const std::string &host)
         {
             std::cout << e.what() << std::endl;
             std::cout << "Unable to get host endpoint by name " << std::endl;
-            throw error;
+            throw std::runtime_error(error);
         }
         return true;
     }
