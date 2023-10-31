@@ -29,7 +29,7 @@ SocketSelect::SocketSelect(Socket const *const s1, Socket const *const s2, TypeS
     }
 
     if (select(0, &fds_, (fd_set *)0, (fd_set *)0, ptval) == SOCKET_ERROR)
-        throw "Error in select";
+        throw std::runtime_error("Error in select");
 }
 
 #else

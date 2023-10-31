@@ -28,7 +28,7 @@ CServerSocket::CServerSocket(int port, int num_of_connections, TypeSocket type) 
     if (s_ == INVALID_SOCKET)
     {
         std::cout << "Failed to create Socket Descriptor " << std::endl;
-        throw "INVALID_SOCKET";
+        throw std::runtime_error("INVALID_SOCKET");
     }
 
     if (type == NonBlockingSocket)
@@ -49,7 +49,7 @@ bool CServerSocket::Open(
     {
         std::cout << "Failed to Bind" << std::endl;
         Close();
-        throw "INVALID_SOCKET";
+        throw std::runtime_error("INVALID_SOCKET");
     };
 
     /**
@@ -58,7 +58,7 @@ bool CServerSocket::Open(
     if (listen(s_, max_connections) == SOCKET_LISTEN_ERROR)
     {
         std::cout << "Listening Socket Failed.. ...." << std::endl;
-        throw "LISTEN_ERROR";
+        throw std::runtime_error("LISTEN_ERROR");
     }
     else
     {
