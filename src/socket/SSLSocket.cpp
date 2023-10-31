@@ -37,8 +37,23 @@ SSL_CTX *create_context()
     return ctx;
 }
 
+int password_callback(char *buf, int size, int rwflag, void *userdata) {
+    // Get the password from userdata.
+    std::string password = *(std::string *)userdata;
+
+    // Copy the password to the buffer.
+    strncpy(buf, password.c_str(), password.size());
+}
+
+
 void configure_context(SSL_CTX *ctx)
 {
+    std::string password = std::getenv("SSL_CERT_PASSPHRASE");
+
+    // Set the userdata for the password callback.
+    SSL_CTX_set_default_passwd_cb_userdata(ctx, &password);
+
+
     /* Set the key and cert */
     if (SSL_CTX_use_certificate_file(ctx, std::getenv("SSL_CERT_FILE_PATH"), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
