@@ -37,22 +37,23 @@ SSL_CTX *create_context()
     return ctx;
 }
 
-int password_callback(char *buf, int size, int rwflag, void *userdata) {
-    // Get the password from userdata.
-    std::string password = *(std::string *)userdata;
-
-    // Copy the password to the buffer.
-    strncpy(buf, password.c_str(), password.size());
-}
-
-
 void configure_context(SSL_CTX *ctx)
 {
-    std::string password = std::getenv("SSL_CERT_PASSPHRASE");
+    if(!std::getenv("SSL_CERT_FILE_PATH")) {
+        throw std::runtime_error("SSL_CERT_FILE_PATH environment variable is missing!");
+    }
+
+    if(!std::getenv("SSL_KEY_FILE_PATH")) {
+        throw std::runtime_error("SSL_KEY_FILE_PATH environment variable is missing!");
+    }
+
+    std::string password;
+    if (std::getenv("SSL_CERT_PASSPHRASE")) {
+        password = std::getenv("SSL_CERT_PASSPHRASE");
+    }
 
     // Set the userdata for the password callback.
     SSL_CTX_set_default_passwd_cb_userdata(ctx, &password);
-
 
     /* Set the key and cert */
     if (SSL_CTX_use_certificate_file(ctx, std::getenv("SSL_CERT_FILE_PATH"), SSL_FILETYPE_PEM) <= 0) {
@@ -147,7 +148,7 @@ std::string SSLSocket::ReceiveBytes()
     std::string ret;
     char buf[1024];
 
-    while (1)
+    while (true)
     {
         u_long arg = 1024;
 #ifdef WINDOWS_OS
@@ -182,11 +183,11 @@ std::string SSLSocket::ReceiveBytes()
 std::string SSLSocket::ReceiveLine()
 {
     std::string ret;
-    while (1)
+    while (true)
     {
         char r;
 
-        switch (recv(s_, &r, 1, 0))
+        switch (SSL_read(ssl, &r, 1))
         {
             case 0: // not connected anymore;
                 // ... but last line sent
@@ -215,7 +216,7 @@ std::string SSLSocket::ReceiveLine()
 void SSLSocket::SendLine(std::string s)
 {
     s += '\n';
-    send(s_, s.c_str(), s.length(), 0);
+    SSL_write(ssl, s.c_str(), s.length());
 }
 
 /**
@@ -225,11 +226,6 @@ void SSLSocket::SendBytes(char *s, int length)
 {
     std::cout << "SendBytes -- " << "SSLSocket FD : " << s_ << std::endl;
     SSL_write(ssl, s, length);
-}
-
-int SSLSocket::GetSocket()
-{
-    return this->s_;
 }
 
 void SSLSocket::Close()
@@ -250,6 +246,4 @@ void SSLSocket::Init()
     if (SSL_accept(ssl) <= 0) {
         ERR_print_errors_fp(stderr);
     }
-
 }
-

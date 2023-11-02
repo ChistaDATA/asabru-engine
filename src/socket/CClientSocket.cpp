@@ -149,8 +149,7 @@ bool CClientSocket::Resolve(const std::string &host)
 }
 
 // Close the socket
-bool CClientSocket::Close()
+void CClientSocket::Close()
 {
     CloseSocket(m_ConnectSock);
-    return true;
 }

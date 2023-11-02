@@ -58,22 +58,22 @@ public:
 
     Socket &operator=(Socket const &);
 
-    std::string ReceiveLine();
+    virtual std::string ReceiveLine();
 
-    std::string ReceiveBytes();
+    virtual std::string ReceiveBytes();
 
     // The parameter of SendLine is not a const reference
     // because SendLine modifies the std::string passed.
-    void SendLine(std::string);
+    virtual void SendLine(std::string);
 
     // The parameter of SendBytes is a const reference
     // because SendBytes does not modify the std::string passed
     // (in contrast to SendLine).
-    void SendBytes(char *s, int length);
+    virtual void SendBytes(char *s, int length);
 
     int GetSocket();
 
-    void Close();
+    virtual void Close();
 
 protected:
     friend class SocketSelect;
