@@ -41,7 +41,7 @@ public:
     bool Receive(void *buffer, int *len);
 
     // Close the socket
-    bool Close();
+    void Close();
 
     ~CClientSocket() { Close(); }
 };
