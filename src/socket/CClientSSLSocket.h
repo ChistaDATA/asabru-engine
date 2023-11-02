@@ -1,19 +1,16 @@
 #pragma once
-#include "Socket.h"
+
+#include "SSLSocket.h"
 #include <string>
 #include "ProtocolHelper.h"
 #include "ThreadUtils.h"
 
-using namespace std;
-#define SOCKET int
-void Sleep(unsigned int microseconds);
-
 /**
- * CClientSocket
+ * CClientSSLSocket
  * - This class holds the responsibility for maintaining the
- *   client socket connection. 
+ *   ssl client socket connection.
 */
-class CClientSocket : public Socket
+class CClientSSLSocket : public SSLSocket
 {
 private:
     char m_ServerName[255];
@@ -21,16 +18,18 @@ private:
     struct sockaddr_in m_Server;
     struct hostent *m_HostPointer;
     unsigned int m_addr;
+    BIO *bio;
 
 public:
     // Constructor
-    CClientSocket(std::string server_name, int client_port);
+    CClientSSLSocket(std::string server_name, int client_port);
 
     // Resolve the host name or IP address
     bool Resolve(const std::string &host);
 
     // Connect to the server
     bool Connect();
+    bool TcpConnect();
 
-    ~CClientSocket() { Close(); }
+    ~CClientSSLSocket() { Close(); }
 };

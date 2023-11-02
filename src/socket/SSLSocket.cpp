@@ -18,26 +18,71 @@
 
 int SSLSocket::nofSockets_ = 0;
 
-#define SOCKET int
-
-SSL_CTX *create_context()
+void SSLSocket::create_context(const SSL_METHOD *method)
 {
-    const SSL_METHOD *method;
-    SSL_CTX *ctx;
-
-    method = TLS_server_method();
-
     ctx = SSL_CTX_new(method);
     if (!ctx) {
         perror("Unable to create SSL context");
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("Unable to create SSL context");
     }
-
-    return ctx;
 }
 
-void configure_context(SSL_CTX *ctx)
+void SSLSocket::handle_error(int result) {
+    /*
+     * If something bad happened then we will dump the contents of the
+     * OpenSSL error stack to stderr. There might be some useful diagnostic
+     * information there.
+     */
+    if (result == EXIT_FAILURE)
+        ERR_print_errors_fp(stderr);
+
+    /*
+     * Free the resources we allocated. We do not free the BIO object here
+     * because ownership of it was immediately transferred to the SSL object
+     * via SSL_set_bio(). The BIO will be freed when we free the SSL object.
+     */
+    SSL_free(ssl);
+    SSL_CTX_free(ctx);
+}
+
+void SSLSocket::configure_client_context() {
+    /*
+     * Configure the client to abort the handshake if certificate
+     * verification fails. Virtually all clients should do this unless you
+     * really know what you are doing.
+     */
+    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
+
+    /* Use the default trusted certificate store */
+    if (!SSL_CTX_set_default_verify_paths(ctx))
+    {
+        handle_error(EXIT_FAILURE);
+        throw std::runtime_error("Failed to set the default trusted certificate store\n");
+    }
+
+    /*
+     * In a real application you would probably just use the default system certificate trust store and call:
+     *     SSL_CTX_set_default_verify_paths(ctx);
+     * In this demo though we are using a self-signed certificate, so the client must trust it directly.
+     */
+//    if (!SSL_CTX_load_verify_locations(ctx, std::getenv("SSL_CERT_FILE_PATH"), NULL)) {
+//        ERR_print_errors_fp(stderr);
+//        exit(EXIT_FAILURE);
+//    }
+
+    /*
+     * TLSv1.1 or earlier are deprecated by IETF and are generally to be
+     * avoided if possible. We require a minimum TLS version of TLSv1.2.
+     */
+    if (!SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION))
+    {
+        handle_error(EXIT_FAILURE);
+        throw std::runtime_error("Failed to set the minimum TLS protocol version\n");
+    }
+}
+
+void SSLSocket::configure_server_context()
 {
     if(!std::getenv("SSL_CERT_FILE_PATH")) {
         throw std::runtime_error("SSL_CERT_FILE_PATH environment variable is missing!");
@@ -71,17 +116,8 @@ void configure_context(SSL_CTX *ctx)
  * SSLSocket - Constructor
  * Creates a SSLSocket and stores the socket file descriptor in s_
  */
-SSLSocket::SSLSocket() : s_(0)
+SSLSocket::SSLSocket(const SSL_METHOD *method) : ssl_method(method), Socket()
 {
-    // UDP: use SOCK_DGRAM instead of SOCK_STREAM
-    s_ = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (s_ == INVALID_SOCKET)
-    {
-        throw "INVALID_SOCKET";
-    }
-
-    refCounter_ = new int(1);
     Init();
 }
 
@@ -90,11 +126,32 @@ SSLSocket::SSLSocket() : s_(0)
  * Stores the socket file descriptor param in s_
  * @param s socket file descriptor
  */
-SSLSocket::SSLSocket(SOCKET s) : s_(s)
+SSLSocket::SSLSocket(SOCKET s, const SSL_METHOD *method) : ssl_method(method), Socket(s)
 {
-    refCounter_ = new int(1);
     Init();
 };
+
+/**
+ * SSLSocket Initialization
+ */
+void SSLSocket::Init()
+{
+    create_context(ssl_method);
+
+    if (ssl_method == TLS_server_method()) {
+        configure_server_context();
+
+        ssl = SSL_new(ctx);
+        SSL_set_fd(ssl, s_);
+
+        if (SSL_accept(ssl) <= 0) {
+            handle_error(EXIT_FAILURE);
+            throw std::runtime_error("Failed to establish an SSL connection.");
+        }
+    } else if (ssl_method == TLS_client_method()) {
+        configure_client_context();
+    }
+}
 
 /**
  * Deconstructor
@@ -114,13 +171,7 @@ SSLSocket::~SSLSocket()
  * SSLSocket - Constructor
  * @param o another socket object
  */
-SSLSocket::SSLSocket(const SSLSocket &o)
-{
-    refCounter_ = o.refCounter_;
-    (*refCounter_)++;
-    s_ = o.s_;
-
-    nofSockets_++;
+SSLSocket::SSLSocket(const SSLSocket &o): Socket(o) {
 }
 
 /**
@@ -233,17 +284,4 @@ void SSLSocket::Close()
     SSL_shutdown(ssl);
     SSL_free(ssl);
     CloseSocket(s_);
-}
-
-void SSLSocket::Init()
-{
-    ctx = create_context();
-    configure_context(ctx);
-
-    ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, s_);
-
-    if (SSL_accept(ssl) <= 0) {
-        ERR_print_errors_fp(stderr);
-    }
 }

@@ -1,5 +1,9 @@
+//
+// Created by Midhun Darvin on 02/11/23.
+//
 
-#include "CClientSocket.h"
+#include "CClientSSLSocket.h"
+
 #include <string>
 #include <iostream>
 
@@ -18,25 +22,22 @@
 #endif
 
 //////////////////////////////////////////
-// CClientSocket Implementation
+// CClientSSLSocket Implementation
 
 /**
  * Constructor - Initialize Socket for client connection
  * @param proxy_port integer
  * @param protocol Protocol
  */
-CClientSocket::CClientSocket(std::string server_name, int client_port) : m_ServerPort(client_port)
+CClientSSLSocket::CClientSSLSocket(std::string server_name, int client_port) : m_ServerPort(client_port), SSLSocket(TLS_client_method())
 {
     strcpy(m_ServerName, server_name.c_str());
+    std::string error;
 
     Connect();
 }
 
-/**
- * Open Socket
- */
-bool CClientSocket::Connect()
-{
+bool CClientSSLSocket::TcpConnect() {
     std::string host = m_ServerName;
     int port = m_ServerPort;
     std::string error;
@@ -61,19 +62,65 @@ bool CClientSocket::Connect()
 #endif
         throw std::runtime_error(error);
     }
+
+    printf("TCP connection to server successful\n");
+}
+
+/**
+ * Open Socket
+ */
+bool CClientSSLSocket::Connect()
+{
+    TcpConnect();
+
+    ssl = SSL_new(ctx);
+    SSL_set_fd(ssl, s_);
+
+    /*
+     * Tell the server during the handshake which hostname we are attempting
+     * to connect to in case the server supports multiple hosts.
+     */
+    if (!SSL_set_tlsext_host_name(ssl, m_ServerName))
+    {
+        handle_error(EXIT_FAILURE);
+        throw std::runtime_error("Failed to set the SNI hostname\n");
+    }
+
+    /*
+     * Ensure we check during certificate verification that the server has
+     * supplied a certificate for the hostname that we were expecting.
+     * Virtually all clients should do this unless you really know what you
+     * are doing.
+     */
+    if (!SSL_set1_host(ssl, m_ServerName))
+    {
+        handle_error(EXIT_FAILURE);
+        throw std::runtime_error("Failed to set the certificate verification hostname");
+    }
+
+    /* Now do SSL connect with server */
+    if (SSL_connect(ssl) == 1) {
+
+        printf("SSL connection to server successful\n");
+        printf("SSL connected using %s\n", SSL_get_cipher(ssl));
+
+    } else {
+        handle_error(EXIT_FAILURE);
+        throw std::runtime_error("SSL connection to server failed\n");
+    }
 }
 
 /**
  * Resolve the host name or IP address
  */
-bool CClientSocket::Resolve(const std::string &host)
+bool CClientSSLSocket::Resolve(const std::string &host)
 {
     std::string error;
     if (isalpha(host[0]))
     {
         try
         {
-            if ((m_HostPointer = gethostbyname(host.c_str())) == 0)
+            if ((m_HostPointer = gethostbyname(host.c_str())) == nullptr)
             {
                 std::cout << "Unable to get host endpoint by name " << std::endl;
                 error = strerror(errno);
@@ -106,4 +153,3 @@ bool CClientSocket::Resolve(const std::string &host)
         return true;
     }
 }
-

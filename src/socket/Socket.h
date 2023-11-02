@@ -82,6 +82,8 @@ protected:
 
     friend class CClientSocket;
 
+    friend class CClientSSLSocket;
+
     Socket(SOCKET s);
 
     Socket();

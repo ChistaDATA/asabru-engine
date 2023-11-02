@@ -16,12 +16,17 @@
 #include <iostream>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/bio.h>
 #include "ThreadUtils.h"
 #include "Socket.h"
 
-class SSLSocket: Socket {
+class SSLSocket: public Socket {
 public:
     virtual ~SSLSocket();
+
+    SSLSocket(const SSL_METHOD *ssl_method = TLS_server_method());
+
+    explicit SSLSocket(SOCKET s, const SSL_METHOD *ssl_method = TLS_server_method());
 
     SSLSocket(const SSLSocket &);
 
@@ -41,18 +46,22 @@ public:
     void SendBytes(char *s, int length) override;
 
     void Close() override;
-    explicit SSLSocket(SOCKET s);
-    SSLSocket();
 
 protected:
-    SOCKET s_;
     int *refCounter_;
-
-private:
     SSL_CTX *ctx;
     SSL *ssl;
+
+    void handle_error(int result);
+
+private:
     static int nofSockets_;
+    const SSL_METHOD *ssl_method;
     void Init();
+
+    void create_context(const SSL_METHOD *method);
+    void configure_client_context();
+    void configure_server_context();
 };
 
 
