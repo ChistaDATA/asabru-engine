@@ -48,10 +48,8 @@ public:
     void Close() override;
 
 protected:
-    int *refCounter_;
     SSL_CTX *ctx;
     SSL *ssl;
-
     void handle_error(int result);
 
 private:

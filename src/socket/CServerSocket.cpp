@@ -186,7 +186,12 @@ void *CServerSocket::ClientThreadProc(
 
     CLIENT_DATA clientData;
     memcpy(&clientData, threadParams, sizeof(CLIENT_DATA));
-    ((CServerSocket *)clientData.ptr_to_instance)->thread_routine((void *)&clientData);
+    try {
+        ((CServerSocket *)clientData.ptr_to_instance)->thread_routine((void *)&clientData);
+    } catch (std::exception &e) {
+        std::cout << e.what() << std::endl;
+    }
+
     return 0;
 }
 
