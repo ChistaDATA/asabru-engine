@@ -52,7 +52,11 @@ void SSLSocket::configure_client_context() {
      * verification fails. Virtually all clients should do this unless you
      * really know what you are doing.
      */
-    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
+    bool verifyCertificates = true;
+    if (std::getenv("SSL_VERIFY_CERT")) {
+        verifyCertificates = strcmp(std::getenv("SSL_VERIFY_CERT"), "true") == 0;
+    }
+    SSL_CTX_set_verify(ctx, verifyCertificates ? SSL_VERIFY_PEER : SSL_VERIFY_NONE, NULL);
 
     /* Use the default trusted certificate store */
     if (!SSL_CTX_set_default_verify_paths(ctx))
