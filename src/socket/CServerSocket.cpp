@@ -30,6 +30,11 @@ CServerSocket::CServerSocket(int port, int num_of_connections, TypeSocket type) 
         std::cout << "Failed to create Socket Descriptor " << std::endl;
         throw std::runtime_error("INVALID_SOCKET");
     }
+    int enable = 1;
+    if (setsockopt(s_, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable)) < 0) {
+        std::cout << "setsockopt(SO_REUSEADDR) failed" << std::endl;
+        throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
+    }
 
     if (type == NonBlockingSocket)
     {
