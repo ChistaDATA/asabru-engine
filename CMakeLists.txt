@@ -1,9 +1,21 @@
 cmake_minimum_required(VERSION 3.15)
 project(asabru_engine)
 
-include_directories(../asabru-commons/src)
-include_directories(../asabru-commons/src/config)
 include_directories(../libuv/include)
+
+MACRO(HEADER_DIRECTORIES search_path return_list)
+    FILE(GLOB_RECURSE new_list ${search_path})
+    SET(dir_list "")
+    FOREACH(file_path ${new_list})
+        GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
+        SET(dir_list ${dir_list} ${dir_path})
+    ENDFOREACH()
+    LIST(REMOVE_DUPLICATES dir_list)
+    SET(${return_list} ${dir_list})
+ENDMACRO()
+
+HEADER_DIRECTORIES("../asabru-commons/src/*.h" header_dir_list)
+include_directories(${header_dir_list})
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
