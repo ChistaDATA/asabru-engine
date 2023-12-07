@@ -5,6 +5,7 @@
 //
 #include "CServerSocket.h"
 #include <utility>
+#include "ThreadPoolSingleton.h"
 
 /**
  * CServerSocket - Constructor
@@ -122,11 +123,11 @@ void *CServerSocket::ListenThreadProc(
 
     std::cout << "node info => " << std::string(info.node_info) << std::endl;
 
-    CServerSocket *curr_instance = (CServerSocket *)(info.ptr_to_instance);
-    if (curr_instance == 0)
+    auto *curr_instance = (CServerSocket *)(info.ptr_to_instance);
+    if (curr_instance == nullptr)
     {
         std::cout << "Failed to retrieve current instance pointer" << std::endl;
-        return 0;
+        return nullptr;
     }
 
     // CServerSocket *socket_server = curr_instance->socket_server;
@@ -134,7 +135,7 @@ void *CServerSocket::ListenThreadProc(
               << std::endl;
 
 
-    while (1)
+    while (true)
     {
         Socket *new_sock = curr_instance->Accept();
         std::cout << "Accepted connection :" << std::endl;
@@ -163,13 +164,15 @@ void *CServerSocket::ListenThreadProc(
         clientData.current_service_index = current_service_index;
         current_service_index = ( current_service_index + 1 ) % 100;
 
-#ifdef WINDOWS_OS
-        DWORD ThreadId;
-        ::CreateThread(NULL, 0, CServerSocket::ClientThreadProc, (LPVOID)&ClientData, 0, &ThreadId);
-#else
-        pthread_t thread2;
-        pthread_create(&thread2, NULL, CServerSocket::ClientThreadProc, (void *)&clientData);
-#endif
+        ThreadPoolSingleton::pool.push({
+               thread_pool::TaskType::Execute, // TaskType
+               [&clientData](std::vector<thread_pool::Param> const& params){
+                       std::cout << "Hi from thread " << std::this_thread::get_id()
+                                 << " request \n";
+                       CServerSocket::ClientThreadProc((void *) &clientData);
+               },
+               {} // Arguments
+       });
         usleep(3000);
     }
 
@@ -230,6 +233,6 @@ Socket *CServerSocket::Accept()
     }
 
     // make_nonblocking(new_sock);
-    Socket *r = new Socket(new_sock);
+    auto *r = new Socket(new_sock);
     return r;
 }
