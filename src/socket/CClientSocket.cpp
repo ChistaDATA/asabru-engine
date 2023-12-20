@@ -65,6 +65,12 @@ bool CClientSocket::Connect()
     }
 }
 
+bool CClientSocket::Reconnect() {
+    Close();
+    CreateSocket();
+    Connect();
+}
+
 /**
  * Resolve the host name or IP address
  */
@@ -108,4 +114,3 @@ bool CClientSocket::Resolve(const std::string &host)
         return true;
     }
 }
-

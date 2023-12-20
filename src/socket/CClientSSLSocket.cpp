@@ -37,7 +37,7 @@ CClientSSLSocket::CClientSSLSocket(std::string server_name, int client_port) : m
     Connect();
 }
 
-bool CClientSSLSocket::TcpConnect() {
+void CClientSSLSocket::TcpConnect() {
     std::string host = m_ServerName;
     int port = m_ServerPort;
     std::string error;
@@ -69,7 +69,7 @@ bool CClientSSLSocket::TcpConnect() {
 /**
  * Open Socket
  */
-bool CClientSSLSocket::Connect()
+void CClientSSLSocket::Connect()
 {
     TcpConnect();
 

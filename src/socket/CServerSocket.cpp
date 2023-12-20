@@ -96,7 +96,7 @@ bool CServerSocket::StartListeningThread(const std::string& node_info, std::func
     CreateThread(NULL, 0, CServerSocket::ListenThreadProc, (void *)&info, 0, &Thid);
 #else
     pthread_t thread1;
-    int iret1 = pthread_create(&thread1, NULL, CServerSocket::ListenThreadProc, (void *)&info);
+    pthread_create(&thread1, NULL, CServerSocket::ListenThreadProc, (void *)&info);
 #endif
 
     std::cout << "Started Listening Thread :" << m_ProtocolPort << std::endl;

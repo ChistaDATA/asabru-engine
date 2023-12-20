@@ -28,8 +28,8 @@ public:
     bool Resolve(const std::string &host);
 
     // Connect to the server
-    bool Connect();
-    bool TcpConnect();
+    void Connect();
+    void TcpConnect();
 
     ~CClientSSLSocket() { Close(); }
 };

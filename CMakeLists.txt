@@ -1,60 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
-project(asabru_engine)
+project(AsabruEngine)
 
-include_directories(../libuv/include)
-include(CMakePrintHelpers)
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# Add the subdirectories for source code and tests
+add_subdirectory(src)
+add_subdirectory(tests)
 
-# Add compiler warnings
-if (CMAKE_COMPILER_IS_GNUCXX)
-    add_compile_options(-Wall)
-endif ()
-
-# Find OpenSSL library
-find_package(OpenSSL REQUIRED)
-
-# Set source directory
-set(SOURCE_DIRECTORY "src")
-
-# Collect all source files
-file(GLOB_RECURSE SOURCE_FILES "${SOURCE_DIRECTORY}/**/*.cpp")
-
-# Add build directory
-set(BUILD_DIRECTORY "build")
-
-# Set library directory
-set(LIB_DIRECTORY "lib")
-
-MACRO(HEADER_DIRECTORIES search_path return_list)
-    FILE(GLOB_RECURSE new_list ${search_path})
-    SET(dir_list "")
-    FOREACH(file_path ${new_list})
-        GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
-        SET(dir_list ${dir_list} ${dir_path})
-    ENDFOREACH()
-    LIST(REMOVE_DUPLICATES dir_list)
-    SET(${return_list} ${dir_list})
-ENDMACRO()
-
-HEADER_DIRECTORIES("../asabru-commons/src/*.h" header_dir_list)
-include_directories(${header_dir_list})
-
-# Create a library target
-add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
-
-# Set output directory for libraries
-set_target_properties(${PROJECT_NAME}
-        PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${LIB_DIRECTORY}
-        )
-
-target_link_libraries(
-        ${PROJECT_NAME}
-        OpenSSL::SSL
-        ${CMAKE_SOURCE_DIR}/lib/libuv/build/libuv.a
-        ${CMAKE_SOURCE_DIR}/lib/asabru-commons/build/lib/libasabru_commons.a
-)
 
