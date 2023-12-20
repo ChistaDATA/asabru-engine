@@ -73,6 +73,8 @@ public:
 
     int GetSocket();
 
+    void CreateSocket();
+
     virtual void Close();
 
 protected:

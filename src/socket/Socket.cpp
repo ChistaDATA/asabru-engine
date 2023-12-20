@@ -133,6 +133,12 @@ int make_nonblocking(int file_descriptor)
 Socket::Socket() : s_(0)
 {
     Start();
+    CreateSocket();
+
+    refCounter_ = new int(1);
+}
+
+void Socket::CreateSocket() {
     // UDP: use SOCK_DGRAM instead of SOCK_STREAM
     s_ = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -140,8 +146,6 @@ Socket::Socket() : s_(0)
     {
         throw std::runtime_error("INVALID_SOCKET");
     }
-
-    refCounter_ = new int(1);
 }
 
 /**

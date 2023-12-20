@@ -16,8 +16,8 @@ void Sleep(unsigned int microseconds);
 class CClientSocket : public Socket
 {
 private:
-    char m_ServerName[255];
     int m_ServerPort;
+    char m_ServerName[255];
     struct sockaddr_in m_Server;
     struct hostent *m_HostPointer;
     unsigned int m_addr;
@@ -31,6 +31,9 @@ public:
 
     // Connect to the server
     bool Connect();
+
+    // Reconnect to the server
+    bool Reconnect();
 
     ~CClientSocket() { Close(); }
 };

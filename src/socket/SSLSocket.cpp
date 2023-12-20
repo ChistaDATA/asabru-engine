@@ -120,7 +120,7 @@ void SSLSocket::configure_server_context()
  * SSLSocket - Constructor
  * Creates a SSLSocket and stores the socket file descriptor in s_
  */
-SSLSocket::SSLSocket(const SSL_METHOD *method) : ssl_method(method), Socket()
+SSLSocket::SSLSocket(const SSL_METHOD *method) : Socket(), ssl_method(method)
 {
     Init();
 }
@@ -130,7 +130,7 @@ SSLSocket::SSLSocket(const SSL_METHOD *method) : ssl_method(method), Socket()
  * Stores the socket file descriptor param in s_
  * @param s socket file descriptor
  */
-SSLSocket::SSLSocket(SOCKET s, const SSL_METHOD *method) : ssl_method(method), Socket(s)
+SSLSocket::SSLSocket(SOCKET s, const SSL_METHOD *method) : Socket(s), ssl_method(method)
 {
     Init();
 };
