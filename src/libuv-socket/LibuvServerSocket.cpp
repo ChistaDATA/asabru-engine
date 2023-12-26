@@ -34,8 +34,6 @@ void on_new_connection(uv_stream_t *server, int status)
         clientData.mode = curr_instance->info.mode;
         clientData.ptr_to_instance = curr_instance;
         clientData.client_target_pair = pair;
-        clientData.current_service_index = curr_instance->current_service_index;
-        curr_instance->current_service_index = ( curr_instance->current_service_index + 1 ) % 100;
         LibuvServerSocket::ClientThreadProc(&clientData);
     }
     else

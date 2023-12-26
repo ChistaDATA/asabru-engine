@@ -25,6 +25,9 @@ class LibuvProxySocket : public LibuvServerSocket
     std::function<void *(void *)> thread_routine_override = nullptr;
 
 public:
+    LoadBalancingStrategy<RESOLVED_SERVICE> *loadBalancingStrategy;
+    LoadBalancer<RESOLVED_SERVICE> *loadBalancer;
+
     // Constructor: Initializes the CProxySocket instance
     explicit LibuvProxySocket(int port) : LibuvServerSocket(port)
     {

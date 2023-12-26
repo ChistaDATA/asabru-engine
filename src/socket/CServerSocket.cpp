@@ -6,53 +6,15 @@
 #include "CServerSocket.h"
 #include <utility>
 #include "ThreadPoolSingleton.h"
-
-/**
- * CServerSocket - Constructor
- */
-CServerSocket::CServerSocket(int port, int num_of_connections, TypeSocket type) : m_ProtocolPort(port), max_connections(num_of_connections)
-{
-
-    memset(&socket_address, 0, sizeof(socket_address));
-
-    socket_address.sin_family = PF_INET;
-    socket_address.sin_port = htons(port);
-
-    // Initialize the socket file descriptor
-    // int socket(int domain, int type, int protocol)
-    // AF_INET      --> ipv4
-    // SOCK_STREAM  --> TCP
-    // SOCK_DGRAM   --> UDP
-    // protocol = 0 --> default for TCP
-    s_ = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-
-    if (s_ == INVALID_SOCKET)
-    {
-        std::cout << "Failed to create Socket Descriptor " << std::endl;
-        throw std::runtime_error("INVALID_SOCKET");
-    }
-    int enable = 1;
-    if (setsockopt(s_, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable)) < 0) {
-        std::cout << "setsockopt(SO_REUSEADDR) failed" << std::endl;
-        throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
-    }
-
-    if (type == NonBlockingSocket)
-    {
-        make_nonblocking(s_);
-    }
-}
-
+#include "load_balancer/LoadBalancer.h"
 /**
  * Open Socket
  */
 bool CServerSocket::Open(
-    std::string node_info,
-    std::function<void *(void *)> pipeline_thread_routine)
-{
+        std::string node_info,
+        std::function<void *(void *)> pipeline_thread_routine) {
     /* bind the socket to the internet address */
-    if (bind(s_, (sockaddr *)&socket_address, sizeof(sockaddr_in)) == SOCKET_BIND_ERROR)
-    {
+    if (::bind(s_, (sockaddr *) &socket_address, sizeof(sockaddr_in)) == SOCKET_BIND_ERROR) {
         std::cout << "Failed to Bind" << std::endl;
         Close();
         throw std::runtime_error("INVALID_SOCKET");
@@ -61,13 +23,10 @@ bool CServerSocket::Open(
     /**
      * Listen for connections
      */
-    if (listen(s_, max_connections) == SOCKET_LISTEN_ERROR)
-    {
+    if (listen(s_, max_connections) == SOCKET_LISTEN_ERROR) {
         std::cout << "Listening Socket Failed.. ...." << std::endl;
         throw std::runtime_error("LISTEN_ERROR");
-    }
-    else
-    {
+    } else {
         printf("Started listening on local port : %d\n", m_ProtocolPort);
     };
 
@@ -78,15 +37,15 @@ bool CServerSocket::Open(
 /**
  *  Start a Listening Thread
  */
-bool CServerSocket::StartListeningThread(const std::string& node_info, std::function<void *(void *)> pipeline_thread_routine)
-{
+bool CServerSocket::StartListeningThread(const std::string &node_info,
+                                         std::function<void *(void *)> pipeline_thread_routine) {
 
     std::cout << "\nThread  => " << node_info << std::endl;
     strcpy(info.node_info, node_info.c_str());
     info.mode = 1;
 
     this->thread_routine = pipeline_thread_routine;
-    info.ptr_to_instance = (void *)this;
+    info.ptr_to_instance = (void *) this;
 
     if (info.ptr_to_instance == 0)
         return false;
@@ -96,7 +55,7 @@ bool CServerSocket::StartListeningThread(const std::string& node_info, std::func
     CreateThread(NULL, 0, CServerSocket::ListenThreadProc, (void *)&info, 0, &Thid);
 #else
     pthread_t thread1;
-    pthread_create(&thread1, NULL, CServerSocket::ListenThreadProc, (void *)&info);
+    pthread_create(&thread1, NULL, CServerSocket::ListenThreadProc, (void *) &info);
 #endif
 
     std::cout << "Started Listening Thread :" << m_ProtocolPort << std::endl;
@@ -111,35 +70,32 @@ bool CServerSocket::StartListeningThread(const std::string& node_info, std::func
 DWORD WINAPI CServerSocket::ListenThreadProc(
     LPVOID lpParameter)
 #else
+
 void *CServerSocket::ListenThreadProc(
-    void *lpParameter)
+        void *lpParameter)
 #endif
 {
     printf("Entered the Listener Thread :\n");
 
     NODE_INFO info;
     memcpy(&info, lpParameter, sizeof(NODE_INFO));
-    int current_service_index = 0;
-
     std::cout << "node info => " << std::string(info.node_info) << std::endl;
 
-    auto *curr_instance = (CServerSocket *)(info.ptr_to_instance);
-    if (curr_instance == nullptr)
-    {
+    auto *curr_instance = (CServerSocket *) (info.ptr_to_instance);
+    if (curr_instance == nullptr) {
         std::cout << "Failed to retrieve current instance pointer" << std::endl;
         return nullptr;
     }
 
-    // CServerSocket *socket_server = curr_instance->socket_server;
     std::cout << "Started listening thread loop :\n"
               << std::endl;
-
-
-    while (true)
-    {
+    while (true) {
         Socket *new_sock = curr_instance->Accept();
         std::cout << "Accepted connection :" << std::endl;
 
+        /**
+         * Configure client connection details
+         */
         CLIENT_DATA clientData;
         clientData.client_port = new_sock->GetSocket();
         memcpy(clientData.node_info, info.node_info, 255);
@@ -153,26 +109,18 @@ void *CServerSocket::ListenThreadProc(
         clientData.client_socket = new_sock;
 
         /**
-         * We need to configure client data, such that the new connection is made to a target endpoint
-         * based on a algorithm. For eg. round robin
-         *
-         * If there are multiple services in endpoint configuration, we would choose a target service based on a round robin manner.
-         * ( TODO: The algorithm used here would be configurable. )
-         *
-         * If there is only one service in the endpoint configuration, then we can directly choose the target service.
+         * Push the request handler as a Task to the
+         * thread pool.
          */
-        clientData.current_service_index = current_service_index;
-        current_service_index = ( current_service_index + 1 ) % 100;
-
         ThreadPoolSingleton::pool.push({
-               thread_pool::TaskType::Execute, // TaskType
-               [&clientData](std::vector<thread_pool::Param> const& params){
-                       std::cout << "Hi from thread " << std::this_thread::get_id()
-                                 << " request \n";
-                       CServerSocket::ClientThreadProc((void *) &clientData);
-               },
-               {} // Arguments
-       });
+                                               thread_pool::TaskType::Execute, // TaskType
+                                               [&clientData](std::vector<thread_pool::Param> const &params) {
+                                                   std::cout << "Hi from thread " << std::this_thread::get_id()
+                                                             << " request \n";
+                                                   CServerSocket::ClientThreadProc((void *) &clientData);
+                                               },
+                                               {} // Arguments
+                                       });
         usleep(3000);
     }
 
@@ -187,15 +135,16 @@ void *CServerSocket::ListenThreadProc(
 DWORD WINAPI CServerSocket::ClientThreadProc(
     LPVOID lpParam)
 #else
+
 void *CServerSocket::ClientThreadProc(
-    void *threadParams)
+        void *threadParams)
 #endif
 {
 
     CLIENT_DATA clientData;
     memcpy(&clientData, threadParams, sizeof(CLIENT_DATA));
     try {
-        ((CServerSocket *)clientData.ptr_to_instance)->thread_routine((void *)&clientData);
+        ((CServerSocket *) clientData.ptr_to_instance)->thread_routine((void *) &clientData);
     } catch (std::exception &e) {
         std::cout << e.what() << std::endl;
     }
@@ -208,11 +157,9 @@ void *CServerSocket::ClientThreadProc(
  * makes the new socket connection non blocking and returns
  * reference to the Socket object.
  */
-Socket *CServerSocket::Accept()
-{
+Socket *CServerSocket::Accept() {
     SOCKET new_sock = accept(s_, 0, 0);
-    if (new_sock == INVALID_SOCKET)
-    {
+    if (new_sock == INVALID_SOCKET) {
 #ifdef WINDOWS_OS
         int rc = WSAGetLastError();
         if (rc == WSAEWOULDBLOCK)
@@ -221,9 +168,7 @@ Socket *CServerSocket::Accept()
 #endif
         {
             return 0; // non-blocking call, no request pending
-        }
-        else
-        {
+        } else {
 #ifdef WINDOWS_OS
             throw "Invalid Socket";
 #else

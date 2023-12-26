@@ -2,6 +2,8 @@
 #include <sys/socket.h>
 #include "uv.h"
 #include "../socket/Socket.h"
+#include "load_balancer/LoadBalancer.h"
+#include "config_types.h"
 
 #define SOCKET int
 
@@ -22,8 +24,8 @@ typedef struct
     int mode;              //   R/W mode - Read Or Write
     char ProtocolName[255];
     Socket * client_socket;
-    int current_service_index;
     ClientTargetPair *client_target_pair;
+    LoadBalancer<RESOLVED_SERVICE> *loadBalancer;
 } CLIENT_DATA;
 
 typedef struct

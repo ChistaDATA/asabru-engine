@@ -25,8 +25,6 @@ class LibuvServerSocket
     int max_connections = MAX_CONNECTIONS;
     struct sockaddr_in socket_address;
 public:
-    int current_service_index = 0;
-
     // Constructor
     LibuvServerSocket(int port, int num_of_connections = MAX_CONNECTIONS, TypeSocket type = BlockingSocket);
 

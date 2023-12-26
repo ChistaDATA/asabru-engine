@@ -6,40 +6,39 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
     CLIENT_DATA clientData;
     memcpy(&clientData, lptr, sizeof(CLIENT_DATA));
 
+    // Retrieve the load balancer class
+    auto loadBalancer = ptr->loadBalancer;
+
     // Check if handler is defined
     CProxyHandler *proxy_handler = ptr->GetHandler();
-    if (proxy_handler == 0)
+    if (proxy_handler == nullptr)
     {
         cout << "The handler is not defined. Exiting!" << endl;
-        return 0;
+        return nullptr;
     }
 
-    /**
-     * Get the configuration data for the target database clusters ( eg. clickhouse )
-     * Config given in config.xml
-     */
-    TARGET_ENDPOINT_CONFIG targetEndpointConfig = ptr->GetConfigValues();
-    int services_count = targetEndpointConfig.services.size();
-    int current_service_index = clientData.current_service_index % services_count;
-    RESOLVED_SERVICE currentService = targetEndpointConfig.services[current_service_index];
-    END_POINT *target_endpoint = new END_POINT{currentService.ipaddress, currentService.port, currentService.r_w, currentService.alias, currentService.reserved, "  "};
-    if (target_endpoint == 0)
-    {
-        cout << "Failed to retrieve target database configuration. Exiting!" << endl;
-        return 0;
-    }
-    cout << "Resolved (Target) Host: " << target_endpoint->ipaddress << endl
-         << "Resolved (Target) Port: " << target_endpoint->port << endl;
+    RESOLVED_SERVICE currentService = loadBalancer->requestServer();
+    auto target_endpoint = END_POINT{
+        currentService.ipaddress,
+        currentService.port,
+        currentService.r_w,
+        currentService.alias,
+        currentService.reserved,
+        "  "
+    };
 
-    Socket *client_socket = (Socket *)clientData.client_socket;
-    CClientSocket *target_socket = new CClientSocket(target_endpoint->ipaddress, target_endpoint->port);
+    cout << "Resolved (Target) Host: " << target_endpoint.ipaddress << endl
+         << "Resolved (Target) Port: " << target_endpoint.port << endl;
+
+    auto *client_socket = (Socket *)clientData.client_socket;
+    auto *target_socket = new CClientSocket(target_endpoint.ipaddress, target_endpoint.port);
 
     EXECUTION_CONTEXT exec_context;
 
     ProtocolHelper::SetReadTimeOut(client_socket->GetSocket(), 1);
     ProtocolHelper::SetReadTimeOut(target_socket->GetSocket(), 1);
 
-    while (1)
+    while (true)
     {
         SocketSelect *sel;
         try
