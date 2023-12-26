@@ -7,6 +7,9 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
 {
     CLIENT_DATA clientData;
     memcpy(&clientData, lptr, sizeof(CLIENT_DATA));
+
+    // Retrieve the load balancer class
+    auto loadBalancer = ptr->loadBalancer;
     
     // Check if handler is defined
     CProxyHandler *proxy_handler = ptr->GetHandler();
@@ -16,14 +19,7 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
         return 0;
     }
 
-    /**
-     * Get the configuration data for the target database clusters ( eg. clickhouse )
-     * Config given in config.xml
-     */
-    TARGET_ENDPOINT_CONFIG targetEndpointConfig = ptr->GetConfigValues();
-    int services_count = targetEndpointConfig.services.size();
-    int current_service_index = clientData.current_service_index % services_count;
-    RESOLVED_SERVICE currentService = targetEndpointConfig.services[current_service_index];
+    RESOLVED_SERVICE currentService = loadBalancer->requestServer();
     END_POINT target_endpoint {
         currentService.ipaddress, currentService.port, currentService.r_w, currentService.alias, currentService.reserved, "  "
     };
@@ -31,8 +27,8 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
     cout << "Resolved (Target) Host: " << target_endpoint.ipaddress << endl
          << "Resolved (Target) Port: " << target_endpoint.port << endl;
 
-    Socket *client_socket = (Socket *)clientData.client_socket;
-    CClientSocket *target_socket = new CClientSocket(target_endpoint.ipaddress, target_endpoint.port);
+    auto *client_socket = (Socket *)clientData.client_socket;
+    auto *target_socket = new CClientSocket(target_endpoint.ipaddress, target_endpoint.port);
 
     EXECUTION_CONTEXT exec_context;
 

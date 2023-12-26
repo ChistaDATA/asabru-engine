@@ -4,7 +4,6 @@
 #include "ProtocolHelper.h"
 #include "ThreadUtils.h"
 
-using namespace std;
 #define SOCKET int
 void Sleep(unsigned int microseconds);
 
@@ -30,10 +29,10 @@ public:
     bool Resolve(const std::string &host);
 
     // Connect to the server
-    bool Connect();
+    void Connect();
 
     // Reconnect to the server
-    bool Reconnect();
+    void Reconnect();
 
     ~CClientSocket() { Close(); }
 };

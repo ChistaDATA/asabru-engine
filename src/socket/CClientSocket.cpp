@@ -36,7 +36,7 @@ CClientSocket::CClientSocket(std::string server_name, int client_port) : m_Serve
 /**
  * Open Socket
  */
-bool CClientSocket::Connect()
+void CClientSocket::Connect()
 {
     Logger *logger = Logger::getInstance();
     std::string host = m_ServerName;
@@ -65,7 +65,7 @@ bool CClientSocket::Connect()
     }
 }
 
-bool CClientSocket::Reconnect() {
+void CClientSocket::Reconnect() {
     Close();
     CreateSocket();
     Connect();
