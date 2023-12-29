@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../config/EngineConstants.h"
 #include "ProtocolHelper.h"
 #include "uv.h"
@@ -14,8 +15,8 @@ void *ClientThreadProc(void *lpParam);
 
 
 /**
- * CServerSocket
- * - This class holds the responsiblity for maintaining the
+ * LibuvServerSocket
+ * - This class holds the responsibility for maintaining the
  *   libuv proxy server socket.
  */
 class LibuvServerSocket
@@ -26,7 +27,14 @@ class LibuvServerSocket
     struct sockaddr_in socket_address;
 public:
     // Constructor
-    LibuvServerSocket(int port, int num_of_connections = MAX_CONNECTIONS, TypeSocket type = BlockingSocket);
+    explicit LibuvServerSocket(
+            int port,
+            int num_of_connections = MAX_CONNECTIONS,
+            TypeSocket type = BlockingSocket
+    ): m_ProtocolPort(port),
+       max_connections(num_of_connections) {
+        uv_ip4_addr("0.0.0.0", port, &socket_address);
+    };
 
     /** Parametrized Thread Routine */
     std::function<void *(void *)> thread_routine;

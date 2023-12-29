@@ -1,10 +1,4 @@
-// ServerSocket.cpp - The Implementation of ServerSocket class
-//
-// https://github.com/eminfedar/async-sockets-cpp
-//
-//
 #include "LibuvServerSocket.h"
-#include "uv.h"
 #include <utility>
 
 // Callback function for when a new client connection is accepted
@@ -44,15 +38,6 @@ void on_new_connection(uv_stream_t *server, int status)
 }
 
 /**
- * CServerSocket - Constructor
- */
-LibuvServerSocket::LibuvServerSocket(int port, int num_of_connections, TypeSocket type) : m_ProtocolPort(port),
-                                                                                          max_connections(
-                                                                                                  num_of_connections) {
-    uv_ip4_addr("0.0.0.0", port, &socket_address);
-}
-
-/**
  * Open Socket
  */
 bool LibuvServerSocket::Open(
@@ -83,7 +68,7 @@ bool LibuvServerSocket::StartListeningThread(const std::string &node_info,
     CreateThread(NULL, 0, LibuvServerSocket::ListenThreadProc, (void *)&info, 0, &Thid);
 #else
     pthread_t thread1;
-    pthread_create(&thread1, NULL, LibuvServerSocket::ListenThreadProc, (void *) &info);
+    pthread_create(&thread1, nullptr, LibuvServerSocket::ListenThreadProc, (void *) &info);
 #endif
     std::cout << "Started Listening Thread (LibuvServerSocket) :" << m_ProtocolPort << std::endl;
     return true;
