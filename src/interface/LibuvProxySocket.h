@@ -1,7 +1,7 @@
 /***********************************************************************************************
  * File: LibuvProxySocket.h
- * Description: This header file defines the CProxySocket class, which is derived from CServerSocket.
- *              CProxySocket is used for managing proxy server functionality.
+ * Description: This header file defines the LibuvProxySocket class, which is derived from CServerSocket.
+ *              LibuvProxySocket is used for managing proxy server functionality through libuv.
  ***********************************************************************************************/
 
 #pragma once
@@ -29,7 +29,8 @@ public:
     LoadBalancer<RESOLVED_SERVICE> *loadBalancer;
 
     // Constructor: Initializes the CProxySocket instance
-    explicit LibuvProxySocket(int port) : LibuvServerSocket(port)
+    explicit LibuvProxySocket(int port, LoadBalancingStrategy<RESOLVED_SERVICE> *loadBalancingStrategy = new RoundRobinStrategy<RESOLVED_SERVICE>) :
+        LibuvServerSocket(port), loadBalancingStrategy(loadBalancingStrategy)
     {
         // Create a lambda function that wraps the ThreadHandler
         std::function<void *(void *)> pipelineLambda = [this](void *ptr) -> void *
@@ -76,8 +77,22 @@ public:
     }
 
     // Start the proxy socket
-    bool Start(string identifier)
+    bool Start(std::string identifier)
     {
-        return Open(identifier, thread_routine_override); // Call the base class's Open function
+        /**
+         * Initialize Load balancer for the proxy socket
+         */
+        loadBalancer = new LoadBalancer(this->loadBalancingStrategy);
+
+        /**
+         * Get the configuration data for the target database clusters ( eg. clickhouse )
+         * Config given in config.xml
+         */
+        TARGET_ENDPOINT_CONFIG targetEndpointConfig = this->GetConfigValues();
+        for (const auto& service: targetEndpointConfig.services) {
+            loadBalancer->addServer(service);
+        }
+
+        return Open(std::move(identifier), thread_routine_override); // Call the base class's Open function
     }
 };

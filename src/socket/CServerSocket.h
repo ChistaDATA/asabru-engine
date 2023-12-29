@@ -11,12 +11,9 @@
 DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
 DWORD WINAPI ClientThreadProc(LPVOID lpParam);
 #else
-
 // POSIX
 void *ListenThreadProc(void *lpParameter);
-
 void *ClientThreadProc(void *lpParam);
-
 #endif
 
 
@@ -82,11 +79,8 @@ public:
     static DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
     static DWORD WINAPI ClientThreadProc(LPVOID lpParam, ClientTargetPair *pair);
 #else
-
     static void *ListenThreadProc(void *lpParameter);
-
     static void *ClientThreadProc(void *lpParam);
-
 #endif
 };
 

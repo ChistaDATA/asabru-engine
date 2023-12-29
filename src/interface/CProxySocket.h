@@ -4,8 +4,7 @@
  *              CProxySocket is used for managing proxy server functionality.
  ***********************************************************************************************/
 
-#ifndef PROXY_SOCKET_DOT_H
-#define PROXY_SOCKET_DOT_H
+#pragma once
 
 #include "../socket/CServerSocket.h"           // Include the base class header
 #include "CProxyHandler.h"       // Include the proxy handler header
@@ -70,7 +69,7 @@ public:
     }
 
     // Start the proxy socket
-    bool Start(string identifier) {
+    bool Start(std::string identifier) {
         /**
          * Initialize Load balancer for the proxy socket
          */
@@ -88,5 +87,3 @@ public:
         return Open(std::move(identifier), thread_routine_override); // Call the base class's Open function
     }
 };
-
-#endif // PROXY_SOCKET_DOT_H
