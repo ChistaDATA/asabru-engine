@@ -1,5 +1,6 @@
 #include "LibuvProxySocket.h"
 #include "../socket/SocketSelect.h"
+#include "Logger.h"
 
 void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
 {
@@ -13,12 +14,12 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
     CProxyHandler *proxy_handler = ptr->GetHandler();
     if (proxy_handler == nullptr)
     {
-        std::cout << "The handler is not defined. Exiting!" << std::endl;
+        LOG_ERROR("The handler is not defined. Exiting!");
         return nullptr;
     }
 
     RESOLVED_SERVICE currentService = loadBalancer->requestServer();
-    auto target_endpoint = END_POINT{
+    auto target_endpoint = END_POINT {
         currentService.ipaddress,
         currentService.port,
         currentService.r_w,
@@ -27,8 +28,8 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
         "  "
     };
 
-    std::cout << "Resolved (Target) Host: " << target_endpoint.ipaddress << std::endl
-         << "Resolved (Target) Port: " << target_endpoint.port << std::endl;
+    LOG_INFO("Resolved (Target) Host: " + target_endpoint.ipaddress);
+    LOG_INFO("Resolved (Target) Port: " + std::to_string(target_endpoint.port));
 
     auto *client_socket = (Socket *)clientData.client_socket;
     auto *target_socket = new CClientSocket(target_endpoint.ipaddress, target_endpoint.port);
@@ -47,8 +48,8 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
         }
         catch (std::exception &e)
         {
-            std::cout << e.what() << std::endl;
-            std::cout << "error occurred while creating socket select " << std::endl;
+            LOG_ERROR("Error occurred while creating socket select ");
+            LOG_ERROR(e.what());
         }
 
         bool still_connected = true;
@@ -56,10 +57,10 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
         {
             if (sel->Readable(client_socket))
             {
-                std::cout << "client socket is readable, reading bytes : " << std::endl;
+                LOG_INFO("client socket is readable, reading bytes : ");
                 std::string bytes = client_socket->ReceiveBytes();
 
-                std::cout << "Calling Proxy Upstream Handler.." << std::endl;
+                LOG_INFO("Calling Proxy Upstream Handler..");
                 std::string response = proxy_handler->HandleUpstreamData((void *)bytes.c_str(), bytes.size(), &exec_context);
                 target_socket->SendBytes((char *)response.c_str(), response.size());
 
@@ -69,17 +70,18 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
         }
         catch (std::exception &e)
         {
-            std::cout << "Error while sending to target " << e.what() << std::endl;
+            LOG_ERROR("Error while sending to target ");
+            LOG_ERROR(e.what());
         }
 
         try
         {
             if (sel->Readable(target_socket))
             {
-                std::cout << "target socket is readable, reading bytes : " << std::endl;
+                LOG_INFO("target socket is readable, reading bytes : ");
                 std::string bytes = target_socket->ReceiveBytes();
 
-                std::cout << "Calling Proxy Downstream Handler.." << std::endl;
+                LOG_INFO("Calling Proxy Downstream Handler..");
                 std::string response = proxy_handler->HandleDownStreamData((void *)bytes.c_str(), bytes.size(), &exec_context);
                 client_socket->SendBytes((char *)response.c_str(), response.size());
 
@@ -89,7 +91,8 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
         }
         catch (std::exception &e)
         {
-            std::cout << "Error while sending to client " << e.what() << std::endl;
+            LOG_ERROR("Error while sending to client ");
+            LOG_ERROR(e.what());
         }
 
         if (!still_connected)

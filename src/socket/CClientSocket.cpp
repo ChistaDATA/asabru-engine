@@ -38,14 +38,13 @@ CClientSocket::CClientSocket(std::string server_name, int client_port) : m_Serve
  */
 void CClientSocket::Connect()
 {
-    Logger *logger = Logger::getInstance();
     std::string host = m_ServerName;
     int port = m_ServerPort;
     std::string error;
     Resolve(host);
 
     // Step 4
-    logger->Log("CClientSocket", "INFO", "IP address of " + std::string(m_HostPointer->h_name) + " is: " + std::string(inet_ntoa(*(struct in_addr *)m_HostPointer->h_addr)) );
+    LOG_INFO( "IP address of " + std::string(m_HostPointer->h_name) + " is: " + std::string(inet_ntoa(*(struct in_addr *)m_HostPointer->h_addr)) );
 
     sockaddr_in addr;
     addr.sin_family = AF_INET;
@@ -55,7 +54,7 @@ void CClientSocket::Connect()
 
     if (::connect(s_, (sockaddr *)&addr, sizeof(sockaddr)))
     {
-        logger->Log("CClientSocket", "ERROR", "Unable to connect to the host endpoint ");
+        LOG_ERROR("Unable to connect to the host endpoint ");
 #if WINDOWS_OS
         error = strerror(WSAGetLastError());
 #else

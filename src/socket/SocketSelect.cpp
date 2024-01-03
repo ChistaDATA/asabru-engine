@@ -1,4 +1,5 @@
 #include "SocketSelect.h"
+#include "Logger.h"
 
 #define INVALID_SOCKET (-1)
 #define SOCKET_ERROR (-1)
@@ -65,11 +66,11 @@ SocketSelect::SocketSelect(Socket const *const s1, Socket const *const s2, TypeS
 
         if (select(max_fd + 1, &fds_, nullptr, nullptr, ptval) == -1)
         {
-            std::cout << "Error during select" << std::endl;
+            LOG_ERROR("Error during select");
             throw std::runtime_error("Error in select");
         }
     } catch(std::exception &e) {
-        std::cout << e.what() << std::endl;
+        LOG_ERROR(e.what());
     }
 }
 

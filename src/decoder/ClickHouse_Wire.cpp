@@ -19,6 +19,7 @@
 #include <iostream>
 
 #include "ClickHouse_Wire.h"
+#include "Logger.h"
 
 ClickReadProtoBuffer::ClickReadProtoBuffer(void *buffer, int len) {
     m_buffer = new char[len];
@@ -90,10 +91,10 @@ CProtocolPacketDecoder::CProtocolPacketDecoder(char *buffer, int len) {
 uint64_t CProtocolPacketDecoder::GetPacketType() {
     uint64_t packet_type;
     if (!m_buffer->ReadVarint64(&packet_type)) {
-        std::cout << "Wrong ............packettype " << std::endl;
+        LOG_ERROR("Wrong ............packettype ");
         return -1;
     }
-    std::cout << "Received From Clickhouse Client......" << packet_type << std::endl;
+    LOG_INFO("Received From Clickhouse Client......" + std::to_string(packet_type) );
     return packet_type;
 }
 
