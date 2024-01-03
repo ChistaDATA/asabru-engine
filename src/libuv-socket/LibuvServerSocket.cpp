@@ -1,4 +1,5 @@
 #include "LibuvServerSocket.h"
+#include "Logger.h"
 #include <utility>
 
 // Callback function for when a new client connection is accepted
@@ -53,7 +54,7 @@ bool LibuvServerSocket::Open(
 bool LibuvServerSocket::StartListeningThread(const std::string &node_info,
                                              std::function<void *(void *)> pipeline_thread_routine) {
 
-    std::cout << "\nThread  => " << node_info << std::endl;
+    LOG_INFO("Thread  => " + node_info);
     strcpy(info.node_info, node_info.c_str());
     info.mode = 1;
 

@@ -213,7 +213,7 @@ std::string Socket::ReceiveBytes()
     std::string ret;
     char buffer[1024];
 
-    while (1)
+    while (true)
     {
         u_long arg = 1024;
 #ifdef WINDOWS_OS
@@ -221,7 +221,10 @@ std::string Socket::ReceiveBytes()
 #else
         if (ioctl(s_, FIONREAD, &arg) != 0)
 #endif
+        {
+            std::cerr << "ioctl failed" << std::endl;
             break;
+        }
 
         if (arg == 0)
             break;

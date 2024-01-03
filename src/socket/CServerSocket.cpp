@@ -7,6 +7,9 @@
 #include <utility>
 #include "ThreadPoolSingleton.h"
 #include "load_balancer/LoadBalancer.h"
+#include "Logger.h"
+#include <sstream>
+
 /**
  * Open Socket
  */
@@ -15,7 +18,7 @@ bool CServerSocket::Open(
         std::function<void *(void *)> pipeline_thread_routine) {
     /* bind the socket to the internet address */
     if (::bind(s_, (sockaddr *) &socket_address, sizeof(sockaddr_in)) == SOCKET_BIND_ERROR) {
-        std::cout << "Failed to Bind" << std::endl;
+        LOG_ERROR("Failed to Bind");
         Close();
         throw std::runtime_error("INVALID_SOCKET");
     };
@@ -24,10 +27,10 @@ bool CServerSocket::Open(
      * Listen for connections
      */
     if (listen(s_, max_connections) == SOCKET_LISTEN_ERROR) {
-        std::cout << "Listening Socket Failed.. ...." << std::endl;
+        LOG_ERROR("Listening Socket Failed.. ....");
         throw std::runtime_error("LISTEN_ERROR");
     } else {
-        printf("Started listening on local port : %d\n", m_ProtocolPort);
+        LOG_INFO("Started listening on local port : " + std::to_string(m_ProtocolPort));
     };
 
     // Starts the listening thread
@@ -40,14 +43,14 @@ bool CServerSocket::Open(
 bool CServerSocket::StartListeningThread(const std::string &node_info,
                                          std::function<void *(void *)> pipeline_thread_routine) {
 
-    std::cout << "\nThread  => " << node_info << std::endl;
+    LOG_INFO("Thread  => " + node_info);
     strcpy(info.node_info, node_info.c_str());
     info.mode = 1;
 
     this->thread_routine = pipeline_thread_routine;
     info.ptr_to_instance = (void *) this;
 
-    if (info.ptr_to_instance == 0)
+    if (info.ptr_to_instance == nullptr)
         return false;
 
 #ifdef WINDOWS_OS
@@ -55,10 +58,10 @@ bool CServerSocket::StartListeningThread(const std::string &node_info,
     CreateThread(NULL, 0, CServerSocket::ListenThreadProc, (void *)&info, 0, &Thid);
 #else
     pthread_t thread1;
-    pthread_create(&thread1, NULL, CServerSocket::ListenThreadProc, (void *) &info);
+    pthread_create(&thread1, nullptr, CServerSocket::ListenThreadProc, (void *) &info);
 #endif
 
-    std::cout << "Started Listening Thread :" << m_ProtocolPort << std::endl;
+    LOG_INFO("Started Listening Thread :" + std::to_string(m_ProtocolPort));
     return true;
 }
 
@@ -75,23 +78,22 @@ void *CServerSocket::ListenThreadProc(
         void *lpParameter)
 #endif
 {
-    printf("Entered the Listener Thread :\n");
+    LOG_INFO("Entered the Listener Thread :");
 
     NODE_INFO info;
     memcpy(&info, lpParameter, sizeof(NODE_INFO));
-    std::cout << "node info => " << std::string(info.node_info) << std::endl;
+    LOG_INFO("node info => " + std::string(info.node_info));
 
     auto *curr_instance = (CServerSocket *) (info.ptr_to_instance);
     if (curr_instance == nullptr) {
-        std::cout << "Failed to retrieve current instance pointer" << std::endl;
+        LOG_ERROR("Failed to retrieve current instance pointer");
         return nullptr;
     }
 
-    std::cout << "Started listening thread loop :\n"
-              << std::endl;
+    LOG_INFO("Started listening thread loop :");
     while (true) {
         Socket *new_sock = curr_instance->Accept();
-        std::cout << "Accepted connection :" << std::endl;
+        LOG_INFO("Accepted connection :");
 
         /**
          * Configure client connection details
@@ -102,9 +104,9 @@ void *CServerSocket::ListenThreadProc(
         clientData.mode = info.mode;
         std::string remote_ip = ProtocolHelper::GetIPAddressAsString(&(curr_instance->socket_address));
         strcpy(clientData.remote_addr, remote_ip.c_str());
-        std::cout << "Remote IP address : " << remote_ip << std::endl;
+        LOG_INFO("Remote IP address : " + remote_ip);
         std::string remote_port = ProtocolHelper::GetIPPortAsString(&(curr_instance->socket_address));
-        std::cout << "Remote port : " << remote_port << std::endl;
+        LOG_INFO("Remote port : " + remote_port);
         clientData.ptr_to_instance = curr_instance;
         clientData.client_socket = new_sock;
 
@@ -115,8 +117,9 @@ void *CServerSocket::ListenThreadProc(
         ThreadPoolSingleton::pool.push({
                                                thread_pool::TaskType::Execute, // TaskType
                                                [&clientData](std::vector<thread_pool::Param> const &params) {
-                                                   std::cout << "Hi from thread " << std::this_thread::get_id()
-                                                             << " request \n";
+                                                   std::ostringstream ss;
+                                                   ss << std::this_thread::get_id();
+                                                   LOG_INFO("Thread ID: " + ss.str() + " request");
                                                    CServerSocket::ClientThreadProc((void *) &clientData);
                                                },
                                                {} // Arguments
@@ -149,7 +152,7 @@ void *CServerSocket::ClientThreadProc(
         std::cout << e.what() << std::endl;
     }
 
-    return 0;
+    return nullptr;
 }
 
 /**
@@ -167,7 +170,7 @@ Socket *CServerSocket::Accept() {
         if (errno == EWOULDBLOCK || errno == EAGAIN)
 #endif
         {
-            return 0; // non-blocking call, no request pending
+            return nullptr; // non-blocking call, no request pending
         } else {
 #ifdef WINDOWS_OS
             throw "Invalid Socket";
