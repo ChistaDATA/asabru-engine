@@ -46,6 +46,7 @@
 #include <sys/ioctl.h>
 #endif
 #include "ThreadUtils.h"
+#include "Logger.h"
 
 int Socket::nofSockets_ = 0;
 
@@ -204,50 +205,90 @@ Socket &Socket::operator=(const Socket &o)
     return *this;
 }
 
+u_long Socket::IsSerialDataAvailable() {
+    u_long arg = 0;
+#ifdef WINDOWS_OS
+    if (ioctlsocket(s_, FIONREAD, &arg) != 0)
+#else
+    if (ioctl(s_, FIONREAD, &arg) != 0)
+#endif
+        return 0;
+
+    return arg;
+}
+
 /**
  * Method that receives the bytes from the socket file descriptor _s .
  * Assigns the bytes received to a string and then returns it.
  */
-std::string Socket::ReceiveBytes()
-{
+std::string Socket::ReceiveBytes() {
     std::string ret;
-    char buffer[1024];
+    char buf[1024];
 
-    while (true)
-    {
+    while (true) {
         u_long arg = 1024;
-#ifdef WINDOWS_OS
-        if (ioctlsocket(s_, FIONREAD, &arg) != 0)
-#else
-        if (ioctl(s_, FIONREAD, &arg) != 0)
-#endif
-        {
-            std::cerr << "ioctl failed" << std::endl;
-            break;
-        }
+        /**
+         * Mixing ioctl with select seems to incur a race condition
+         * when data is fragmented, it exits out of the loop.
+         * https://stackoverflow.com/a/18222069
+         */
+//        u_long arg = IsSerialDataAvailable();
+//
+//        if (arg == 0)
+//            break;
+//
+//        if (arg > 1024) arg = 1024;
 
-        if (arg == 0)
-            break;
+        int bytesRead;
+        do {
+            bytesRead = recv(s_, buf, arg, 0);
+        } while (bytesRead == -1 && errno == EINTR);
 
-        if (arg > 1024)
-            arg = 1024;
-
-        ssize_t bytesRead = recv(s_, buffer, arg, 0);
         if (bytesRead < 0) {
-            std::cerr << "Error reading from client" << std::endl;
+            LOG_ERROR("Error reading from client");
             break;
         } else if (bytesRead == 0) {
-            std::cerr << "Connection closed by client" << std::endl;
+            LOG_ERROR("Connection closed by client");
             break;
         }
 
         std::string t;
 
-        t.assign(buffer, bytesRead);
+        t.assign (buf, bytesRead);
         ret += t;
     }
 
     return ret;
+}
+
+int Socket::RecvBlocking(char* buffer, size_t length) {
+    u_long arg = 0;
+#ifdef WINDOWS_OS
+    if (ioctlsocket(s_, FIONREAD, &arg) != 0)
+#else
+    if (ioctl(s_, FIONREAD, &arg) != 0)
+#endif
+       LOG_ERROR("IOctlsocket failed");
+
+    size_t recv_remaining = length;
+    do {
+        size_t recv_this = recv(s_, buffer, recv_remaining, MSG_WAITALL);
+        if (recv_this <= 0) return recv_this;
+        recv_remaining -= recv_this;
+        buffer += recv_this;
+    } while (recv_remaining > 0);
+    return length;
+}
+
+int Socket::Peek(int iterations) {
+    char r;
+    int result, i;
+    for (i = 0; i < iterations; i++) {
+        result = recv(s_, &r, 1, MSG_PEEK | MSG_DONTWAIT);
+        if (result == 1) break;
+    }
+    std::cout << "Peek returning " << result << " after " << i << " iters " << std::endl;
+    return result;
 }
 
 /**
@@ -256,7 +297,7 @@ std::string Socket::ReceiveBytes()
 std::string Socket::ReceiveLine()
 {
     std::string ret;
-    while (1)
+    while (true)
     {
         char r;
 
