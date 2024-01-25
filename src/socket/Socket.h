@@ -62,6 +62,10 @@ public:
 
     virtual std::string ReceiveBytes();
 
+    unsigned long IsSerialDataAvailable();
+
+    int RecvBlocking(char *buffer, size_t length);
+
     // The parameter of SendLine is not a const reference
     // because SendLine modifies the std::string passed.
     virtual void SendLine(std::string);
@@ -100,6 +104,8 @@ private:
     static void End();
 
     static int nofSockets_;
+
+    int Peek(int iterations);
 };
 
 #endif

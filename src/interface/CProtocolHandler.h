@@ -10,7 +10,7 @@ class CProtocolHandler : BaseHandler
 public:
     CProtocolHandler() {}
 
-    virtual std::string HandleData(void *buffer, ssize_t buffer_length, EXECUTION_CONTEXT *exec_context) = 0;
+    virtual std::string HandleData(std::string buffer, unsigned long buffer_length, EXECUTION_CONTEXT *exec_context) = 0;
 
     virtual ~CProtocolHandler() {}
 };
