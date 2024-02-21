@@ -60,6 +60,7 @@ void CClientSocket::Connect()
 #else
         error = strerror(errno);
 #endif
+        LOG_ERROR(error);
         throw std::runtime_error(error);
     }
 }

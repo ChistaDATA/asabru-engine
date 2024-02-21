@@ -245,7 +245,7 @@ std::string Socket::ReceiveBytes() {
         } while (bytesRead == -1 && errno == EINTR);
 
         if (bytesRead < 0) {
-            LOG_ERROR("Error reading from client");
+            // LOG_ERROR("Error reading from client");
             break;
         } else if (bytesRead == 0) {
             LOG_ERROR("Connection closed by client");
