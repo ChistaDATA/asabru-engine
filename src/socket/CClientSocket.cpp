@@ -83,7 +83,7 @@ bool CClientSocket::Resolve(const std::string &host)
         {
             if ((m_HostPointer = gethostbyname(host.c_str())) == 0)
             {
-                std::cout << "Unable to get host endpoint by name " << std::endl;
+                LOG_ERROR("Unable to get host endpoint by name ");
                 error = strerror(errno);
                 throw std::runtime_error(error);
             }
@@ -91,7 +91,7 @@ bool CClientSocket::Resolve(const std::string &host)
         catch (std::exception &e)
         {
             std::cout << e.what() << std::endl;
-            std::cout << "Unable to get host endpoint by name " << std::endl;
+            LOG_ERROR("Unable to get host endpoint by name ");
             throw std::runtime_error(error);
         }
 
@@ -108,7 +108,7 @@ bool CClientSocket::Resolve(const std::string &host)
         catch (std::exception &e)
         {
             std::cout << e.what() << std::endl;
-            std::cout << "Unable to get host endpoint by name " << std::endl;
+            LOG_ERROR("Unable to get host endpoint by name ");
             throw std::runtime_error(error);
         }
         return true;
