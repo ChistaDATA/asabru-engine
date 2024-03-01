@@ -232,12 +232,12 @@ std::string Socket::ReceiveBytes() {
          * when data is fragmented, it exits out of the loop.
          * https://stackoverflow.com/a/18222069
          */
-//        u_long arg = IsSerialDataAvailable();
-//
-//        if (arg == 0)
-//            break;
-//
-//        if (arg > 1024) arg = 1024;
+        arg = IsSerialDataAvailable();
+
+        if (arg == 0)
+            break;
+
+        if (arg > 1024) arg = 1024;
 
         int bytesRead;
         do {
