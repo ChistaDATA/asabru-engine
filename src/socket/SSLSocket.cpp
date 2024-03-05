@@ -15,6 +15,7 @@
 #endif
 
 #include "ThreadUtils.h"
+#include "Logger.h"
 
 int SSLSocket::nofSockets_ = 0;
 
@@ -206,29 +207,37 @@ std::string SSLSocket::ReceiveBytes()
     while (true)
     {
         u_long arg = 1024;
-#ifdef WINDOWS_OS
-        if (ioctlsocket(s_, FIONREAD, &arg) != 0)
-#else
-        if (ioctl(s_, FIONREAD, &arg) != 0)
-#endif
-            break;
 
-        if (arg == 0)
-            break;
+        int rv = SSL_read(ssl, buf,arg);
+        if (rv < 0) {
+            int e = SSL_get_error(ssl,rv);
+            switch (e) {
+                case SSL_ERROR_ZERO_RETURN:
+                    /* End of data */
+                    Close();
+                    break;
+                case SSL_ERROR_WANT_READ:
+                    LOG_ERROR("SSL_ERROR_WANT_READ");
+                    break;
 
-        if (arg > 1024)
-            arg = 1024;
-
-        int rv = SSL_read(ssl,buf,arg);
-        if (rv <= 0)
+                    /* We get a WANT_WRITE if we're trying to rehandshake and we block on a write during that rehandshake.
+                    * We need to wait on the socket to be writeable but reinitiate the read when it is
+                    */
+                case SSL_ERROR_WANT_WRITE:
+                    LOG_ERROR("SSL_ERROR_WANT_WRITE");
+                    break;
+                default:
+                    break;
+            }
             break;
+        }
+
 
         std::string t;
 
         t.assign(buf, rv);
         ret += t;
     }
-
     return ret;
 }
 
