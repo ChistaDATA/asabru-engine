@@ -59,7 +59,7 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
                 std::string bytes = client_socket->ReceiveBytes();
 
                 std::cout << "Calling Proxy Upstream Handler.." << std::endl;
-                std::string response = proxy_handler->HandleUpstreamData((void *)bytes.c_str(), bytes.size(), &exec_context);
+                std::string response = proxy_handler->HandleUpstreamData(bytes, bytes.size(), &exec_context);
                 target_socket->SendBytes((char *)response.c_str(), response.size());
 
                 if (bytes.empty())
@@ -79,7 +79,7 @@ void *CProxySocket::ThreadHandler(CProxySocket *ptr, void *lptr)
                 std::string bytes = target_socket->ReceiveBytes();
 
                 std::cout << "Calling Proxy Downstream Handler.." << std::endl;
-                std::string response = proxy_handler->HandleDownStreamData((void *)bytes.c_str(), bytes.size(), &exec_context);
+                std::string response = proxy_handler->HandleDownStreamData(bytes, bytes.size(), &exec_context);
                 client_socket->SendBytes((char *)response.c_str(), response.size());
 
                 if (bytes.empty())

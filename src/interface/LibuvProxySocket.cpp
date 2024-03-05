@@ -61,7 +61,7 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
                 std::string bytes = client_socket->ReceiveBytes();
 
                 LOG_INFO("Calling Proxy Upstream Handler..");
-                std::string response = proxy_handler->HandleUpstreamData((void *)bytes.c_str(), bytes.size(), &exec_context);
+                std::string response = proxy_handler->HandleUpstreamData(bytes, bytes.size(), &exec_context);
                 target_socket->SendBytes((char *)response.c_str(), response.size());
 
                 if (bytes.empty())
@@ -82,7 +82,7 @@ void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
                 std::string bytes = target_socket->ReceiveBytes();
 
                 LOG_INFO("Calling Proxy Downstream Handler..");
-                std::string response = proxy_handler->HandleDownStreamData((void *)bytes.c_str(), bytes.size(), &exec_context);
+                std::string response = proxy_handler->HandleDownStreamData(bytes, bytes.size(), &exec_context);
                 client_socket->SendBytes((char *)response.c_str(), response.size());
 
                 if (bytes.empty())
