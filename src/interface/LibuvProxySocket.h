@@ -25,12 +25,12 @@ class LibuvProxySocket : public LibuvServerSocket
     std::function<void *(void *)> thread_routine_override = nullptr;
 
 public:
-    LoadBalancingStrategy<RESOLVED_SERVICE> *loadBalancingStrategy;
+    LoadBalancerStrategy<RESOLVED_SERVICE> *loadBalancerStrategy;
     LoadBalancer<RESOLVED_SERVICE> *loadBalancer;
 
     // Constructor: Initializes the CProxySocket instance
-    explicit LibuvProxySocket(int port, LoadBalancingStrategy<RESOLVED_SERVICE> *loadBalancingStrategy = new RoundRobinStrategy<RESOLVED_SERVICE>) :
-        LibuvServerSocket(port), loadBalancingStrategy(loadBalancingStrategy)
+    explicit LibuvProxySocket(int port, LoadBalancerStrategy<RESOLVED_SERVICE> *loadBalancerStrategy = new RoundRobinStrategy<RESOLVED_SERVICE>) :
+        LibuvServerSocket(port), loadBalancerStrategy(loadBalancerStrategy)
     {
         // Create a lambda function that wraps the ThreadHandler
         std::function<void *(void *)> pipelineLambda = [this](void *ptr) -> void *
@@ -82,7 +82,7 @@ public:
         /**
          * Initialize Load balancer for the proxy socket
          */
-        loadBalancer = new LoadBalancer(this->loadBalancingStrategy);
+        loadBalancer = new LoadBalancer(this->loadBalancerStrategy);
 
         /**
          * Get the configuration data for the target database clusters ( eg. clickhouse )
