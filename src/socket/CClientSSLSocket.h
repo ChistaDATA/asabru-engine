@@ -1,35 +1,34 @@
 #pragma once
 
-#include "SSLSocket.h"
-#include <string>
 #include "ProtocolHelper.h"
+#include "SSLSocket.h"
 #include "ThreadUtils.h"
+#include <string>
 
 /**
  * CClientSSLSocket
  * - This class holds the responsibility for maintaining the
  *   ssl client socket connection.
-*/
-class CClientSSLSocket : public SSLSocket
-{
-private:
-    char m_ServerName[255];
-    int m_ServerPort;
-    struct sockaddr_in m_Server;
-    struct hostent *m_HostPointer;
-    unsigned int m_addr;
-    BIO *bio;
+ */
+class CClientSSLSocket : public SSLSocket {
+  private:
+	char m_ServerName[255];
+	int m_ServerPort;
+	struct sockaddr_in m_Server;
+	struct hostent *m_HostPointer;
+	unsigned int m_addr;
+	BIO *bio;
 
-public:
-    // Constructor
-    CClientSSLSocket(std::string server_name, int client_port);
+  public:
+	// Constructor
+	CClientSSLSocket(std::string server_name, int client_port);
 
-    // Resolve the host name or IP address
-    bool Resolve(const std::string &host);
+	// Resolve the host name or IP address
+	bool Resolve(const std::string &host);
 
-    // Connect to the server
-    void Connect();
-    void TcpConnect();
+	// Connect to the server
+	void Connect();
+	void TcpConnect();
 
-    ~CClientSSLSocket() { Close(); }
+	~CClientSSLSocket() { Close(); }
 };
