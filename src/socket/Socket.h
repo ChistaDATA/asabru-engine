@@ -61,7 +61,7 @@ class Socket {
 
 	unsigned long IsSerialDataAvailable();
 
-	int RecvBlocking(char *buffer, size_t length);
+	virtual int RecvBlocking(char *buffer, size_t length);
 
 	// The parameter of SendLine is not a const reference
 	// because SendLine modifies the std::string passed.
