@@ -59,6 +59,8 @@ class Socket {
 
 	virtual std::string ReceiveBytes();
 
+	virtual bool Receive(void *buffer, int *len);
+
 	unsigned long IsSerialDataAvailable();
 
 	virtual int RecvBlocking(char *buffer, size_t length);
@@ -71,6 +73,8 @@ class Socket {
 	// because SendBytes does not modify the std::string passed
 	// (in contrast to SendLine).
 	virtual void SendBytes(char *s, int length);
+
+	virtual bool SendBytes(void *buffer, int len);
 
 	int GetSocket();
 
