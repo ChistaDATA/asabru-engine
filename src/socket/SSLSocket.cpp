@@ -150,35 +150,13 @@ void SSLSocket::Init() {
 /**
  * Deconstructor
  */
-SSLSocket::~SSLSocket() {
-	if (!--(*refCounter_)) {
-		Close();
-		delete refCounter_;
-	}
-
-	--nofSockets_;
-}
+SSLSocket::~SSLSocket() { Close(); }
 
 /**
  * SSLSocket - Constructor
  * @param o another socket object
  */
 SSLSocket::SSLSocket(const SSLSocket &o) : Socket(o) {}
-
-/**
- * SSLSocket - Constructor using the operator `=`
- * @param o another socket object
- */
-SSLSocket &SSLSocket::operator=(const SSLSocket &o) {
-	(*o.refCounter_)++;
-
-	refCounter_ = o.refCounter_;
-	s_ = o.s_;
-
-	nofSockets_++;
-
-	return *this;
-}
 
 int SSLSocket::RecvBlocking(char *buffer, size_t length) {
 	u_long arg = 0;
@@ -298,5 +276,4 @@ void SSLSocket::SendBytes(char *s, int length) {
 void SSLSocket::Close() {
 	SSL_shutdown(ssl);
 	SSL_free(ssl);
-	CloseSocket(s_);
 }

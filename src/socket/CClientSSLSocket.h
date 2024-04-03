@@ -31,6 +31,4 @@ class CClientSSLSocket : public SSLSocket {
 	void Connect();
 	void SSLConnect();
 	void TcpConnect();
-
-	~CClientSSLSocket() { Close(); }
 };
