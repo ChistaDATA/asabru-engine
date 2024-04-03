@@ -179,6 +179,26 @@ SSLSocket &SSLSocket::operator=(const SSLSocket &o) {
 	return *this;
 }
 
+int SSLSocket::RecvBlocking(char *buffer, size_t length) {
+	u_long arg = 0;
+#ifdef WINDOWS_OS
+	if (ioctlsocket(s_, FIONREAD, &arg) != 0)
+#else
+	if (ioctl(s_, FIONREAD, &arg) != 0)
+#endif
+		LOG_ERROR("IOctlsocket failed");
+
+	size_t recv_remaining = length;
+	do {
+		size_t recv_this = SSL_read(ssl, buffer, recv_remaining);
+		if (recv_this <= 0)
+			return recv_this;
+		recv_remaining -= recv_this;
+		buffer += recv_this;
+	} while (recv_remaining > 0);
+	return length;
+}
+
 /**
  * Method that receives the bytes from the socket file descriptor _s .
  * Assigns the bytes received to a string and then returns it.

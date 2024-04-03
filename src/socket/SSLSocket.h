@@ -36,6 +36,8 @@ class SSLSocket : public Socket {
 
 	std::string ReceiveBytes() override;
 
+	int RecvBlocking(char *buffer, size_t length) override;
+
 	// The parameter of SendLine is not a const reference
 	// because SendLine modifies the std::string passed.
 	void SendLine(std::string) override;
