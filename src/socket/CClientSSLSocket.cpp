@@ -37,6 +37,12 @@ CClientSSLSocket::CClientSSLSocket(std::string server_name, int client_port)
 	Connect();
 }
 
+CClientSSLSocket::CClientSSLSocket(SOCKET s, std::string server_name, int client_port)
+	: m_ServerPort(client_port), SSLSocket(s, TLS_client_method()) {
+	strcpy(m_ServerName, server_name.c_str());
+	SSLConnect();
+}
+
 void CClientSSLSocket::TcpConnect() {
 	std::string host = m_ServerName;
 	int port = m_ServerPort;
@@ -71,7 +77,10 @@ void CClientSSLSocket::TcpConnect() {
  */
 void CClientSSLSocket::Connect() {
 	TcpConnect();
+	SSLConnect();
+}
 
+void CClientSSLSocket::SSLConnect() {
 	ssl = SSL_new(ctx);
 	SSL_set_fd(ssl, s_);
 
