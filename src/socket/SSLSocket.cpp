@@ -7,6 +7,7 @@
 #else
 #define DWORD unsigned long
 #define u_long unsigned long
+#define SSL_READ_BUFFER 1024
 
 #include <stdexcept>
 #include <sys/ioctl.h>
@@ -205,10 +206,10 @@ int SSLSocket::RecvBlocking(char *buffer, size_t length) {
  */
 std::string SSLSocket::ReceiveBytes() {
 	std::string ret;
-	char buf[1024];
+	char buf[SSL_READ_BUFFER];
 
 	while (true) {
-		u_long arg = 1024;
+		u_long arg = SSL_READ_BUFFER;
 
 		int rv = SSL_read(ssl, buf, arg);
 		if (rv < 0) {
@@ -238,6 +239,12 @@ std::string SSLSocket::ReceiveBytes() {
 
 		t.assign(buf, rv);
 		ret += t;
+
+		int ssl_pending = SSL_pending(ssl);
+		arg = std::min(ssl_pending, SSL_READ_BUFFER);
+
+		if (arg == 0)
+			break;
 	}
 	return ret;
 }
