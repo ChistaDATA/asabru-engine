@@ -22,12 +22,14 @@ class CClientSSLSocket : public SSLSocket {
   public:
 	// Constructor
 	CClientSSLSocket(std::string server_name, int client_port);
+	CClientSSLSocket(SOCKET s, std::string server_name, int client_port);
 
 	// Resolve the host name or IP address
 	bool Resolve(const std::string &host);
 
 	// Connect to the server
 	void Connect();
+	void SSLConnect();
 	void TcpConnect();
 
 	~CClientSSLSocket() { Close(); }
