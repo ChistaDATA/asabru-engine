@@ -4,6 +4,7 @@
 
 #include "CClientSSLSocket.h"
 
+#include "Logger.h"
 #include <iostream>
 #include <string>
 
@@ -50,8 +51,8 @@ void CClientSSLSocket::TcpConnect() {
 	Resolve(host);
 
 	// Step 4
-	std::cout << "IP address of " << m_HostPointer->h_name << " is: " << inet_ntoa(*(struct in_addr *)m_HostPointer->h_addr)
-			  << std::endl;
+	LOG_INFO("IP address of " + std::string(m_HostPointer->h_name) +
+			 " is: " + std::string(inet_ntoa(*(struct in_addr *)m_HostPointer->h_addr)));
 
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
@@ -60,7 +61,7 @@ void CClientSSLSocket::TcpConnect() {
 	memset(&(addr.sin_zero), 0, 8);
 
 	if (::connect(s_, (sockaddr *)&addr, sizeof(sockaddr))) {
-		std::cout << "Unable to connect to the host endpoint " << std::endl;
+		LOG_ERROR("Unable to connect to host endpoint")
 #if WINDOWS_OS
 		error = strerror(WSAGetLastError());
 #else
@@ -69,7 +70,7 @@ void CClientSSLSocket::TcpConnect() {
 		throw std::runtime_error(error);
 	}
 
-	printf("TCP connection to server successful\n");
+	LOG_INFO("TCP connection to server successful");
 }
 
 /**
@@ -107,8 +108,8 @@ void CClientSSLSocket::SSLConnect() {
 	/* Now do SSL connect with server */
 	if (SSL_connect(ssl) == 1) {
 
-		printf("SSL connection to server successful\n");
-		printf("SSL connected using %s\n", SSL_get_cipher(ssl));
+		LOG_INFO("SSL connection to server successful")
+		LOG_INFO("SSL connected using " + std::string(SSL_get_cipher(ssl)))
 
 	} else {
 		handle_error(EXIT_FAILURE);
@@ -124,13 +125,13 @@ bool CClientSSLSocket::Resolve(const std::string &host) {
 	if (isalpha(host[0])) {
 		try {
 			if ((m_HostPointer = gethostbyname(host.c_str())) == nullptr) {
-				std::cout << "Unable to get host endpoint by name " << std::endl;
+				LOG_ERROR("Unable to get host endpoint by name");
 				error = strerror(errno);
 				throw std::runtime_error(error);
 			}
 		} catch (std::exception &e) {
-			std::cout << e.what() << std::endl;
-			std::cout << "Unable to get host endpoint by name " << std::endl;
+			LOG_ERROR(e.what());
+			LOG_ERROR("Unable to get host endpoint by name");
 			throw std::runtime_error(error);
 		}
 
@@ -141,8 +142,8 @@ bool CClientSSLSocket::Resolve(const std::string &host) {
 			unsigned int m_addr = inet_addr(host.c_str());
 			m_HostPointer = gethostbyaddr((char *)&m_addr, 4, AF_INET);
 		} catch (std::exception &e) {
-			std::cout << e.what() << std::endl;
-			std::cout << "Unable to get host endpoint by name " << std::endl;
+			LOG_ERROR(e.what());
+			LOG_ERROR("Unable to get host endpoint by name");
 			throw std::runtime_error(error);
 		}
 		return true;
