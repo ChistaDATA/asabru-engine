@@ -38,8 +38,14 @@ CClientSSLSocket::CClientSSLSocket(std::string server_name, int client_port)
 	Connect();
 }
 
-CClientSSLSocket::CClientSSLSocket(SOCKET s, std::string server_name, int client_port)
-	: m_ServerPort(client_port), SSLSocket(s, TLS_client_method()) {
+/**
+ * Constructor - Initialize Socket from an existing SOCKET
+ * @param s  fd of an existing connection
+ * @param server_name  hostname/ip of the remote target
+ * @param server_port  port of the remote target
+ */
+CClientSSLSocket::CClientSSLSocket(SOCKET s, std::string server_name, int server_port)
+	: m_ServerPort(server_port), SSLSocket(s, TLS_client_method()) {
 	strcpy(m_ServerName, server_name.c_str());
 	SSLConnect();
 }
