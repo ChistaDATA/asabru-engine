@@ -2,7 +2,7 @@
 #include "CClientSocket.h"
 #include <string>
 #include <iostream>
-#include "Logger.h"
+#include "logger/Logger.h"
 
 #ifdef WINDOWS_OS
 #include <windows.h>

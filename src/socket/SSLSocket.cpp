@@ -14,8 +14,8 @@
 #include <sys/socket.h>
 #endif
 
-#include "Logger.h"
 #include "ThreadUtils.h"
+#include "logger/Logger.h"
 
 int SSLSocket::nofSockets_ = 0;
 

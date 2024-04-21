@@ -8,7 +8,7 @@
 
 #include "../libuv-socket/LibuvServerSocket.h"           // Include the base class header
 #include "CProxyHandler.h"       // Include the proxy handler header
-#include "config_types.h"        // Include the configuration types header
+#include "config/config_types.h"        // Include the configuration types header
 #include "CommonTypes.h"
 #include "ProtocolHelper.h"
 

@@ -5,7 +5,7 @@
 #include "ProtocolHelper.h"
 #include "load_balancer/LoadBalancerStrategy.h"
 #include "load_balancer/RoundRobinStrategy.h"
-#include "config_types.h"
+#include "config/config_types.h"
 
 #ifdef WINDOWS_OS
 DWORD WINAPI ListenThreadProc(LPVOID lpParameter);
