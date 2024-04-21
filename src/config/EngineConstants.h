@@ -1,9 +1,9 @@
 #pragma once
-#include <sys/socket.h>
-#include "uv.h"
 #include "../socket/Socket.h"
+#include "config/config_types.h"
 #include "load_balancer/LoadBalancer.h"
-#include "config_types.h"
+#include "uv.h"
+#include <sys/socket.h>
 
 #define SOCKET int
 

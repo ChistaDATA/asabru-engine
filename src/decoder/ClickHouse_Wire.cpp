@@ -19,7 +19,7 @@
 #include <iostream>
 
 #include "ClickHouse_Wire.h"
-#include "Logger.h"
+#include "logger/Logger.h"
 
 ClickReadProtoBuffer::ClickReadProtoBuffer(void *buffer, int len) {
     m_buffer = new char[len];

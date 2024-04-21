@@ -1,6 +1,6 @@
 #include "LibuvProxySocket.h"
 #include "../socket/SocketSelect.h"
-#include "Logger.h"
+#include "logger/Logger.h"
 
 void *LibuvProxySocket::ThreadHandler(LibuvProxySocket *ptr, void *lptr)
 {
