@@ -42,6 +42,10 @@ include_directories(../include)
 # Create a library target
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
+target_include_directories(${PROJECT_NAME}
+        PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
 # Set output directory for libraries
 set_target_properties(${PROJECT_NAME}
         PROPERTIES
@@ -58,8 +62,7 @@ elseif (ASABRU_COMMONS_BUILD STREQUAL "LOCAL_DIR")
     # For development purpose
     CPMAddPackage(
             NAME asabru_commons
-            LOCAL_DIR
-            ../../asabru-commons/build
+            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../asabru-commons/src
     )
 else()
     CPMAddPackage(

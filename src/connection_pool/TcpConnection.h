@@ -1,6 +1,6 @@
 #include <connection-pool/connection.h>
 #include <connection-pool/pool.h>
-#include "CClientSocket.h"
+#include "socket/CClientSocket.h"
 
 class TcpConnection final : public cpool::Connection
 {
