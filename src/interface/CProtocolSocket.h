@@ -4,6 +4,7 @@
 #include "../socket/CServerSocket.h"
 #include "CProxyHandler.h"
 #include "CProtocolHandler.h"
+#include "pipeline/Pipeline.h"
 
 class CProtocolSocket : public CServerSocket {
     CProtocolHandler *m_handler = 0;
