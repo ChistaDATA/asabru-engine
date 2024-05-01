@@ -11,6 +11,7 @@
 #include "config/config_types.h"        // Include the configuration types header
 #include "CommonTypes.h"
 #include "ProtocolHelper.h"
+#include "pipeline/Pipeline.h"
 
 // Class definition for CProxySocket
 class CProxySocket : public CServerSocket {

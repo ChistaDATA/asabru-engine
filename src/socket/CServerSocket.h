@@ -83,8 +83,3 @@ public:
     static void *ClientThreadProc(void *lpParam);
 #endif
 };
-
-// typedef void *(*PipelineFunction)(CServerSocket *ptr, void *lptr);
-
-template<typename T>
-using PipelineFunction = void *(*)(T *ptr, void *lptr);
