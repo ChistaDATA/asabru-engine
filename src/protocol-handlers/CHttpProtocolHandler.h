@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BaseProtocolHandler.h"
+#include "protocol-handlers/BaseProtocolHandler.h"
 
 // A request handler should expect a request as argument and returns a response
 using HttpRequestHandler_t = std::function<simple_http_server::HttpResponse(const simple_http_server::HttpRequest &)>;
