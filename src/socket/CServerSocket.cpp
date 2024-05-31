@@ -93,17 +93,17 @@ void *CServerSocket::ListenThreadProc(void *lpParameter)
 		/**
 		 * Configure client connection details
 		 */
-		CLIENT_DATA clientData;
-		clientData.client_port = new_sock->GetSocket();
-		memcpy(clientData.node_info, info.node_info, 255);
-		clientData.mode = info.mode;
+		CLIENT_DATA* clientData = new CLIENT_DATA();
+		clientData->client_port = new_sock->GetSocket();
+		memcpy(clientData->node_info, info.node_info, 255);
+		clientData->mode = info.mode;
 		std::string remote_ip = ProtocolHelper::GetIPAddressAsString(&(curr_instance->socket_address));
-		strcpy(clientData.remote_addr, remote_ip.c_str());
+		strcpy(clientData->remote_addr, remote_ip.c_str());
 		LOG_INFO("Remote IP address : " + remote_ip);
 		std::string remote_port = ProtocolHelper::GetIPPortAsString(&(curr_instance->socket_address));
 		LOG_INFO("Remote port : " + remote_port);
-		clientData.ptr_to_instance = curr_instance;
-		clientData.client_socket = new_sock;
+		clientData->ptr_to_instance = curr_instance;
+		clientData->client_socket = new_sock;
 
 		/**
 		 * Push the request handler as a Task to the
@@ -111,15 +111,15 @@ void *CServerSocket::ListenThreadProc(void *lpParameter)
 		 */
 		ThreadPoolSingleton::pool.push({
 			thread_pool::TaskType::Execute, // TaskType
-			[&clientData](std::vector<thread_pool::Param> const &params) {
+			[clientData](std::vector<thread_pool::Param> const &params) {
 				std::ostringstream ss;
 				ss << std::this_thread::get_id();
 				LOG_INFO("Thread ID: " + ss.str() + " request");
-				CServerSocket::ClientThreadProc((void *)&clientData);
+				CServerSocket::ClientThreadProc((void *) clientData);
+				delete clientData;
 			},
 			{} // Arguments
 		});
-		usleep(3000);
 	}
 
 	return 0;

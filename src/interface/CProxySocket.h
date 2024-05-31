@@ -27,6 +27,7 @@ class CProxySocket : public CServerSocket {
 public:
     LoadBalancerStrategy<RESOLVED_SERVICE> *loadBalancerStrategy;
     LoadBalancer<RESOLVED_SERVICE> *loadBalancer;
+	std::map<std::string, RESOLVED_SERVICE> *hostname_map;
 
     // Constructor: Initializes the CProxySocket instance
     explicit CProxySocket(int port, LoadBalancerStrategy<RESOLVED_SERVICE> *loadBalancerStrategy = new RoundRobinStrategy<RESOLVED_SERVICE>)
@@ -76,14 +77,22 @@ public:
          */
         loadBalancer = new LoadBalancer(this->loadBalancerStrategy);
 
-        /**
+		/**
          * Get the configuration data for the target database clusters ( eg. clickhouse )
          * Config given in config.xml
-         */
-        TARGET_ENDPOINT_CONFIG targetEndpointConfig = this->GetConfigValues();
-        for (const auto& service: targetEndpointConfig.services) {
-            loadBalancer->addServer(service);
-        }
+		 */
+		TARGET_ENDPOINT_CONFIG targetEndpointConfig = this->GetConfigValues();
+
+		this->hostname_map = new std::map<std::string, RESOLVED_SERVICE>();
+
+		for (const auto& service: targetEndpointConfig.services) {
+			// add service to load balancer
+			loadBalancer->addServer(service);
+
+			// Set hostname config map if available
+			if (!service.source_hostname.empty())
+				(*hostname_map)[service.source_hostname] = service;
+		}
 
         return Open(std::move(identifier), thread_routine_override); // Call the base class's Open function
     }
