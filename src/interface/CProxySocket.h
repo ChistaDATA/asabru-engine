@@ -47,13 +47,16 @@ public:
 
     // Set a custom pipeline function for the socket
     bool SetPipeline(PipelineFunction<CProxySocket> pipelineFunction) {
+        if (pipelineFunction == nullptr) {
+            return false;
+        }
         // Create a lambda that wraps the provided pipeline function
         std::function<void *(void *)> pipelineLambda = [this, pipelineFunction](void *ptr) -> void * {
             return pipelineFunction(this, ptr);
         };
         thread_routine_override = pipelineLambda; // Set the thread routine to the pipeline
 
-        return thread_routine_override != nullptr;
+        return true;
     }
 
     // Get the proxy handler instance

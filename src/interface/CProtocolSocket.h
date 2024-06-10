@@ -27,12 +27,15 @@ public:
     }
 
     bool SetPipeline(PipelineFunction<CProtocolSocket> test_func) {
+        if (test_func == nullptr) {
+            return false;
+        }
         std::function<void *(void *)> myfunc = [this, test_func](void *ptr) -> void * {
             return test_func(this, ptr);
         };
         thread_routine_override = myfunc;
 
-        return thread_routine_override != nullptr;
+        return true;
     }
 
     CProtocolHandler *GetHandler() { return m_handler; }
