@@ -276,4 +276,5 @@ void SSLSocket::SendBytes(char *s, int length) {
 void SSLSocket::Close() {
 	SSL_shutdown(ssl);
 	SSL_free(ssl);
+	SSL_CTX_free(ctx);
 }
