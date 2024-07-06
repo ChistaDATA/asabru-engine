@@ -12,7 +12,7 @@
 #endif
 
 #include "Socket.h"
-#include "ThreadUtils.h"
+#include "util/ThreadUtils.h"
 #include <iostream>
 #include <openssl/bio.h>
 #include <openssl/err.h>

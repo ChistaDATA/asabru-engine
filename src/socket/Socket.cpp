@@ -46,8 +46,8 @@
 #include <sys/time.h>
 
 #endif
-#include "ThreadUtils.h"
 #include "logger/Logger.h"
+#include "util/ThreadUtils.h"
 
 int Socket::nofSockets_ = 0;
 

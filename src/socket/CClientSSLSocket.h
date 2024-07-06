@@ -2,7 +2,7 @@
 
 #include "ProtocolHelper.h"
 #include "SSLSocket.h"
-#include "ThreadUtils.h"
+#include "util/ThreadUtils.h"
 #include <string>
 
 /**
