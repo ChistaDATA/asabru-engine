@@ -16,7 +16,10 @@
 #include <netdb.h>
 #include <stdexcept>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #endif
+
+#include "util/network_utils.h"
 
 //////////////////////////////////////////
 // CClientSocket Implementation
@@ -44,7 +47,9 @@ void CClientSocket::Connect()
     Resolve(host);
 
     // Step 4
-    LOG_INFO( "IP address of " + std::string(m_HostPointer->h_name) + " is: " + std::string(inet_ntoa(*(struct in_addr *)m_HostPointer->h_addr)) );
+	if (m_HostPointer && m_HostPointer->h_name) {
+		LOG_INFO( "IP address of " + std::string(m_HostPointer->h_name) + " is: " + std::string(inet_ntoa(*(struct in_addr *)m_HostPointer->h_addr)) );
+	}
 
     sockaddr_in addr;
     addr.sin_family = AF_INET;
@@ -63,6 +68,8 @@ void CClientSocket::Connect()
         LOG_ERROR(error);
         throw std::runtime_error(error);
     }
+
+	free(m_HostPointer);
 }
 
 void CClientSocket::Reconnect() {
@@ -103,7 +110,8 @@ bool CClientSocket::Resolve(const std::string &host)
         {
             /* Convert nnn.nnn address to a usable one */
             unsigned int m_addr = inet_addr(host.c_str());
-            m_HostPointer = gethostbyaddr((char *)&m_addr, 4, AF_INET);
+//            m_HostPointer = gethostbyaddr((char *)&m_addr, 4, AF_INET);
+			m_HostPointer = NetworkUtils::create_hostent(host.c_str());
         }
         catch (std::exception &e)
         {

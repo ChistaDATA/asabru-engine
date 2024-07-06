@@ -1,8 +1,8 @@
 #pragma once
-#include "Socket.h"
-#include <string>
 #include "ProtocolHelper.h"
-#include "ThreadUtils.h"
+#include "Socket.h"
+#include "util/ThreadUtils.h"
+#include <string>
 
 #define SOCKET int
 void Sleep(unsigned int microseconds);
